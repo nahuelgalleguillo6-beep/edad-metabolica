@@ -211,6 +211,18 @@
   .cm .k{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase}
   .cm .v{font-weight:800;font-size:1.1rem;margin-top:3px}
   .cm .v.up{color:var(--ok)} .cm .v.down{color:var(--bad)} .cm .v.flat{color:var(--muted)}
+  .livecmp{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px}
+  .livecmp .lh{font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:10px}
+  .livecmp .lg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  @media(min-width:520px){.livecmp .lg{grid-template-columns:repeat(4,1fr)}}
+  .livecmp .lc{text-align:center}
+  .livecmp .lc .k{font-size:.66rem;color:var(--muted);text-transform:uppercase;font-weight:600}
+  .livecmp .lc .v{font-weight:800;font-size:1.02rem;margin-top:2px}
+  .livecmp .lc .v.up{color:var(--ok)} .livecmp .lc .v.down{color:var(--bad)} .livecmp .lc .v.flat{color:var(--muted)}
+  .livecmp .lnote{font-size:.84rem;color:var(--muted)}
+  .insight{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;padding:13px 15px;margin-bottom:16px;font-size:.87rem;line-height:1.55;color:var(--ink)}
+  .insight.ok{border-left-color:var(--ok)} .insight.warn{border-left-color:var(--warn)} .insight.bad{border-left-color:var(--bad)} .insight.info{border-left-color:var(--info)}
+  .insight .sum{display:block;margin-top:6px;color:var(--muted);font-size:.8rem}
   .chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
   .chart .ct{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:4px}
   .chart .ct b{font-size:.9rem;color:var(--ink)}
@@ -606,9 +618,22 @@
 
     const printHead='<div class="print-only printhead"><h2>🧬 Informe de Composición Corporal</h2><p>Generado el '+fmtDate(HOY)+' · '+(g==='male'?'Masculino':'Femenino')+' · '+age+' años · '+n1(wDisp(peso))+' '+wU()+' · '+n1(lDisp(altura))+' '+lU()+' · cintura '+n1(lDisp(waist))+' '+lU()+'</p></div>';
 
+    // Comparación en vivo con la última medición guardada del perfil
+    let liveStrip='';
+    { const hist=curHist().slice().sort((x,y)=>x.t-y.t);
+      if(hist.length){
+        const L=hist[hist.length-1];
+        const dW=peso-L.weight, dB=bf-L.bf, dL=leanMass-L.leanMass, dM=meta-L.metaAge;
+        const any=Math.abs(dW)>=0.05||Math.abs(dB)>=0.05||Math.abs(dL)>=0.05||dM!==0;
+        const c=(k,d,u,bd)=>{const z=Math.abs(d)<0.05;const cls=(z||bd===null)?'flat':((bd?d<0:d>0)?'up':'down');return '<div class="lc"><div class="k">'+k+'</div><div class="v '+cls+'">'+(d>0?'+':'')+n1(d)+u+'</div></div>';};
+        liveStrip='<div class="livecmp"><div class="lh">📊 Comparado con tu última medición ('+L.fecha+')</div>'+(any?('<div class="lg">'+c('Peso',wDisp(dW),' '+wU(),null)+c('Grasa',dB,'%',true)+c('M. magra',wDisp(dL),' '+wU(),false)+c('Edad metab.',dM,' a',true)+'</div>'):'<div class="lnote">Todavía no hay cambios respecto a tu última medición — modificá algún valor para ver la diferencia.</div>')+'</div>';
+      }
+    }
+
     output.innerHTML=
       printHead+
       '<div class="hero '+(younger?'good':'bad')+'"><div class="eyebrow">Tu edad metabólica es</div><div class="big">'+meta+'<small> años</small></div><div class="badge">'+(younger?'✓ Por debajo de tu edad real':'▲ Por encima de tu edad real')+'</div><p class="msg">'+(diff<0?'¡Excelente! Tu composición es la de alguien más joven que vos.':diff===0?'Tu edad metabólica coincide con tu edad cronológica.':'Tu edad metabólica supera tu edad real en '+diff+' año(s): reducir grasa la mejora.')+'</p></div>'+
+      liveStrip+
       '<div class="tiphint">💡 Tocá la <b>ⓘ</b> junto a cada dato para entender qué significa.</div>'+
       '<div class="block"><h3><span class="em">📊</span>Composición corporal</h3>'+barHtml+divergeNote+
         '<div class="stats c3">'+
@@ -683,6 +708,35 @@
     for(let i=0;i<n;i++){const [x,y]=xy(i);pts+=x.toFixed(1)+','+y.toFixed(1)+' ';dots+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2.6" fill="'+color+'"/>';}
     return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+color+'" stroke-width="2" points="'+pts+'"/>'+dots+'</svg>';
   }
+  function bfChart(values,target,color){
+    const w=300,h=56,pad=6,n=values.length;
+    if(n<2) return spark(values,color);
+    let lo=Math.min.apply(null,values.concat(target)), hi=Math.max.apply(null,values.concat(target));
+    if(hi-lo<1.5){hi+=1;lo-=1;}
+    const rng=hi-lo;
+    const X=i=>pad+i/(n-1)*(w-2*pad), Y=v=>h-pad-(v-lo)/rng*(h-2*pad);
+    let pts='',dots='';
+    for(let i=0;i<n;i++){const x=X(i),y=Y(values[i]);pts+=x.toFixed(1)+','+y.toFixed(1)+' ';dots+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2.6" fill="'+color+'"/>';}
+    const ty=Y(target);
+    const meta='<line x1="'+pad+'" y1="'+ty.toFixed(1)+'" x2="'+(w-pad)+'" y2="'+ty.toFixed(1)+'" stroke="#16a34a" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.9"/><text x="'+(w-pad)+'" y="'+(ty-4).toFixed(1)+'" text-anchor="end" font-size="9" fill="#16a34a">meta '+n1(target)+'%</text>';
+    return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none">'+meta+'<polyline fill="none" stroke="'+color+'" stroke-width="2" points="'+pts+'"/>'+dots+'</svg>';
+  }
+  function progressInsight(a){
+    if(a.length<2) return null;
+    const f=a[0], l=a[a.length-1];
+    const dFat=l.bf-f.bf, dLean=l.leanMass-f.leanMass, dW=l.weight-f.weight, weeks=(l.t-f.t)/604800000;
+    let tone,emoji,headline;
+    if(dFat<=-0.3&&dLean>=-0.2){tone='ok';emoji='✅';headline='Vas muy bien: perdés grasa y conservás (o ganás) músculo. Eso es recomposición real.';}
+    else if(dFat<=-0.3){tone='warn';emoji='⚠️';headline='Perdés grasa pero también algo de músculo. Subí la proteína y seguí entrenando fuerza para conservarlo.';}
+    else if(dFat>=0.3&&dLean>=0.5){tone='info';emoji='💪';headline='Ganás músculo, aunque también algo de grasa. Si no buscás volumen, recortá un poco las calorías.';}
+    else if(dFat>=0.3){tone='bad';emoji='🔻';headline='Subió tu grasa corporal. Revisá las calorías y la actividad para volver al rumbo.';}
+    else {tone='info';emoji='➡️';headline='Te mantenés estable. Si querés cambios, ajustá las calorías o el entrenamiento.';}
+    let pace='';
+    if(weeks>=1&&Math.abs(dFat)>=0.3) pace=' Ritmo: '+(dFat<0?'':'+')+n1(dFat/weeks)+' % de grasa por semana.';
+    const span=weeks>=1?('en '+Math.round(weeks)+' semana'+(Math.round(weeks)!==1?'s':'')):'en estos días';
+    const summary='Desde tu primera medición '+span+': grasa '+(dFat>0?'+':'')+n1(dFat)+'%, músculo '+(dLean>0?'+':'')+n1(wDisp(dLean))+' '+wU()+', peso '+(dW>0?'+':'')+n1(wDisp(dW))+' '+wU()+'.';
+    return {tone,emoji,headline,pace,summary};
+  }
 
   function renderHistory(){
     const a=curHist().slice().sort((x,y)=>x.t-y.t);
@@ -693,8 +747,11 @@
       const p=a[a.length-2], c=a[a.length-1];
       const cell=(k,delta,unitTxt,betterDown)=>{let cls;if(betterDown===null||delta===0)cls='flat';else cls=(betterDown?delta<0:delta>0)?'up':'down';return '<div class="cm"><div class="k">'+k+'</div><div class="v '+cls+'">'+(delta>0?'+':'')+n1(delta)+unitTxt+'</div></div>';};
       html+='<div class="cmp">'+cell('Grasa',c.bf-p.bf,'%',true)+cell('M. magra',wDisp(c.leanMass)-wDisp(p.leanMass),' '+wU(),false)+cell('Peso',wDisp(c.weight)-wDisp(p.weight),' '+wU(),null)+cell('Edad metab.',c.metaAge-p.metaAge,' a',true)+'</div>';
+      const ins=progressInsight(a);
+      if(ins) html+='<div class="insight '+ins.tone+'">'+ins.emoji+' <b>'+ins.headline+'</b>'+ins.pace+'<span class="sum">'+ins.summary+'</span></div>';
       const bfs=a.map(m=>m.bf), pesos=a.map(m=>wDisp(m.weight));
-      html+='<div class="chart"><div class="ct"><span>% Grasa corporal</span><b>'+n1(bfs[0])+'% → '+n1(bfs[bfs.length-1])+'%</b></div>'+spark(bfs,'#6366f1')+'</div>';
+      const tbf=parseFloat(inputEl('targetbf').value); const target=(isFinite(tbf)&&tbf>=3&&tbf<=50)?tbf:(genderVal()==='male'?14:23);
+      html+='<div class="chart"><div class="ct"><span>% Grasa corporal</span><b>'+n1(bfs[0])+'% → '+n1(bfs[bfs.length-1])+'%</b></div>'+bfChart(bfs,target,'#6366f1')+'</div>';
       html+='<div class="chart"><div class="ct"><span>Peso ('+wU()+')</span><b>'+n1(pesos[0])+' → '+n1(pesos[pesos.length-1])+' '+wU()+'</b></div>'+spark(pesos,'#16a34a')+'</div>';
     }
     html+='<table class="htable"><thead><tr><th>Fecha</th><th>Peso</th><th>%GC</th><th>M.magra</th><th>E.metab</th><th></th></tr></thead><tbody>';
@@ -709,7 +766,7 @@
     const a=curHist(), d=new Date();
     let t=d.getTime(); if(a.length && a[a.length-1].t>=t) t=a[a.length-1].t+1;
     a.push(Object.assign({t:t, fecha:d.toLocaleDateString('es-AR')}, lastCalc));
-    setHist(a); renderHistory();
+    setHist(a); renderHistory(); update();
     saveBtn.textContent='✓ Medición guardada'; saveBtn.classList.add('ok');
     setTimeout(()=>{saveBtn.textContent='💾 Guardar medición'; saveBtn.classList.remove('ok');},1800);
   });
