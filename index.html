@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6366f1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Edad Metabólica">
+<meta name="description" content="Calculadora de edad metabólica y composición corporal con medidas caseras.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Analizador de Composición Corporal y Edad Metabólica</title>
+<style>
+  :root{
+    --bg1:#eef2ff; --bg2:#faf5ff;
+    --card:#ffffff; --surface:#f8fafc;
+    --ink:#1e293b; --muted:#64748b; --soft:#94a3b8; --line:#e2e8f0;
+    --brand:#6366f1; --brand-d:#4f46e5;
+    --ok:#16a34a; --ok-bg:#dcfce7; --ok-bd:#bbf7d0;
+    --warn:#d97706; --warn-bg:#fef3c7;
+    --bad:#dc2626; --bad-bg:#fee2e2; --bad-bd:#fecaca;
+    --info:#2563eb; --info-bg:#dbeafe;
+    --pick-bg:#eef2ff; --pick-bd:#c7d2fe;
+    --plan-bg1:#f5f3ff; --plan-bg2:#eef2ff; --plan-bd:#ddd6fe; --plan-ink:#4f46e5;
+    --proj-bg1:#fff7ed; --proj-bg2:#fffbeb; --proj-bd:#fed7aa; --proj-ink:#b45309;
+    --radius:16px; --shadow:0 12px 30px -12px rgba(79,70,229,.25);
+  }
+  html[data-theme="dark"]{
+    --bg1:#0b1020; --bg2:#15121f;
+    --card:#1e293b; --surface:#162132;
+    --ink:#e6eaf2; --muted:#9aa7b8; --soft:#64748b; --line:#334155;
+    --ok-bg:#0c2a1a; --ok-bd:#15502f;
+    --warn-bg:#3a2807; --bad-bg:#3a1212; --bad-bd:#7f1d1d; --info-bg:#11233f;
+    --pick-bg:#26224d; --pick-bd:#4f46e5;
+    --plan-bg1:#211d40; --plan-bg2:#181a30; --plan-bd:#4338ca; --plan-ink:#a5b4fc;
+    --proj-bg1:#2a1c0c; --proj-bg2:#1f1708; --proj-bd:#7c5012; --proj-ink:#fbbf24;
+    --shadow:0 12px 30px -12px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:24px 16px;display:flex;justify-content:center;align-items:flex-start;-webkit-font-smoothing:antialiased;transition:background .3s}
+  .wrap{width:100%;max-width:680px}
+
+  .head{text-align:center;margin-bottom:20px;position:relative}
+  .head h1{font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
+  .head h1 span{font-size:1.35rem;vertical-align:-2px;margin-right:6px}
+  .head p{color:var(--muted);font-size:.92rem;margin-top:6px}
+  #theme{position:absolute;top:-4px;right:0;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:1.1rem;cursor:pointer;box-shadow:var(--shadow)}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+
+  .profilebar{display:flex;gap:8px;align-items:flex-end;margin-bottom:16px}
+  .profilebar .pf{flex:1}
+  .profilebar label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .profilebar select,.minibtn{height:44px}
+  .minibtn{padding:0 14px;border-radius:11px;border:1.5px solid var(--brand);background:var(--card);color:var(--brand-d);font-weight:700;font-size:.85rem;cursor:pointer;white-space:nowrap}
+  .minibtn:hover{background:var(--pick-bg)}
+
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--surface);border-radius:12px;padding:6px;margin-bottom:14px}
+  .seg label{position:relative;cursor:pointer}
+  .seg input{position:absolute;opacity:0;inset:0}
+  .seg span{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:9px;font-weight:600;font-size:.95rem;color:var(--muted);transition:.18s;user-select:none}
+  .seg input:checked + span{background:var(--card);color:var(--brand-d);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .seg input:focus-visible + span{outline:2px solid var(--brand);outline-offset:2px}
+
+  .sel label,.activity label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+  select,.activity select{width:100%;padding:12px 13px;font-size:.95rem;color:var(--ink);border:1.5px solid var(--line);border-radius:11px;background:var(--card);cursor:pointer;appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2394a3b8' d='M6 8 0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:34px}
+  select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+  .grid2{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:18px}
+  @media(min-width:520px){.grid2{grid-template-columns:1fr 1fr}}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:14px}
+  @media(min-width:520px){.grid{grid-template-columns:1fr 1fr}}
+  .field label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .field .hint{font-weight:400;color:var(--soft)}
+  .control{position:relative}
+  .control input{width:100%;padding:12px 50px 12px 13px;font-size:1rem;color:var(--ink);border:1.5px solid var(--line);border-radius:11px;background:var(--card);transition:border-color .15s,box-shadow .15s;-moz-appearance:textfield}
+  .control input::-webkit-outer-spin-button,.control input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .control input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+  .control .unit{position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--soft);font-size:.85rem;pointer-events:none}
+  .field.invalid .control input{border-color:var(--bad)}
+  .err{display:none;color:var(--bad);font-size:.76rem;margin-top:5px}
+  .field.invalid .err{display:block}
+  .field.hide{display:none}
+  .optline{margin:-2px 0 16px;font-size:.82rem}
+
+  details.help{margin-bottom:18px;border:1px solid var(--line);border-radius:11px;background:var(--surface);overflow:hidden}
+  details.help summary{cursor:pointer;padding:12px 14px;font-weight:700;font-size:.86rem;list-style:none;display:flex;align-items:center;gap:8px}
+  details.help summary::-webkit-details-marker{display:none}
+  details.help summary:after{content:"▾";margin-left:auto;color:var(--soft);transition:.2s}
+  details.help[open] summary:after{transform:rotate(180deg)}
+  details.help .body{padding:0 14px 14px;font-size:.83rem;line-height:1.6;color:var(--muted)}
+  details.help .body b{color:var(--ink)}
+  details.help .body p{margin-top:8px}
+
+  .btn{width:100%;margin-top:6px;padding:15px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;font-size:1.02rem;font-weight:700;cursor:pointer;transition:.15s}
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:translateY(1px)}
+
+  .result{border-radius:var(--radius);border:1px solid var(--line);padding:22px;background:var(--card);box-shadow:var(--shadow);margin-bottom:18px}
+  .result.empty #output,.result.empty #actions{display:none}
+  .result .placeholder{color:var(--muted);font-size:.95rem;text-align:center;padding:14px 0}
+  .result:not(.empty) .placeholder{display:none}
+
+  .hero{border-radius:14px;padding:24px 18px;text-align:center;margin-bottom:20px}
+  .hero.good{background:var(--ok-bg);border:1px solid var(--ok-bd)}
+  .hero.bad{background:var(--bad-bg);border:1px solid var(--bad-bd)}
+  .hero .eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .hero .big{font-size:4rem;line-height:1;font-weight:800;letter-spacing:-.03em;margin:6px 0 2px}
+  .hero .big small{font-size:1.25rem;font-weight:700;color:var(--muted)}
+  .hero.good .big{color:var(--ok)} .hero.bad .big{color:var(--bad)}
+  .hero .badge{display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:7px 14px;border-radius:999px;font-weight:700;font-size:.88rem;background:var(--card)}
+  .hero.good .badge{color:var(--ok)} .hero.bad .badge{color:var(--bad)}
+  .hero .msg{color:var(--ink);font-size:.9rem;margin-top:12px;opacity:.85}
+
+  .block{margin-top:22px}
+  .block > h3{font-size:.95rem;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .block > h3 .em{font-size:1.05rem}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  @media(min-width:520px){.stats.c3{grid-template-columns:repeat(3,1fr)}.stats.c4{grid-template-columns:repeat(4,1fr)}}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:12px}
+  .stat .k{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+  .stat .v{font-size:1.2rem;font-weight:800;margin-top:3px}
+  .stat .s{font-size:.74rem;color:var(--muted);margin-top:2px}
+
+  .chip{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.72rem;font-weight:700}
+  .chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+  .chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.info{background:var(--info-bg);color:var(--info)}
+
+  .bfbar{margin:6px 0 16px}
+  .bar{position:relative;height:16px;border-radius:8px;overflow:hidden;display:flex;margin-top:26px}
+  .bar .zone{height:100%}
+  .marker{position:absolute;top:-24px;transform:translateX(-50%);text-align:center;white-space:nowrap}
+  .marker b{display:inline-block;background:var(--ink);color:var(--card);font-size:.72rem;font-weight:700;padding:2px 7px;border-radius:6px}
+  .marker:after{content:"";display:block;width:0;height:0;margin:2px auto 0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--ink)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:12px}
+  .legend .li{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--muted)}
+  .legend .li.act{color:var(--ink);font-weight:700}
+  .legend .dot{width:10px;height:10px;border-radius:3px}
+
+  .rows{display:flex;flex-direction:column;gap:8px}
+  .row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+  .row .lab{font-size:.84rem}
+  .row .lab b{display:block;font-weight:700}
+  .row .lab small{color:var(--muted);font-size:.74rem}
+  .row .right{display:flex;align-items:center;gap:10px;text-align:right}
+  .row .num{font-weight:800;font-size:1rem}
+
+  .cals{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px;align-items:start}
+  .cal{border:1px solid var(--line);border-radius:11px;padding:12px;text-align:center;background:var(--surface)}
+  .cal .t{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase}
+  .cal .n{font-size:1.25rem;font-weight:800;margin-top:4px}
+  .cal .u{font-size:.7rem;color:var(--soft)}
+  .cal.pick{background:var(--pick-bg);border-color:var(--pick-bd)}
+  .cal.pick .t{color:var(--plan-ink)}
+
+  .plan{background:linear-gradient(160deg,var(--plan-bg1),var(--plan-bg2));border:1px solid var(--plan-bd);border-radius:14px;padding:18px}
+  .plan .goal{font-size:1.05rem;font-weight:800;color:var(--plan-ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .plan .desc{font-size:.88rem;color:var(--muted);margin-top:8px;line-height:1.55}
+  .macros{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px;align-items:start}
+  @media(min-width:520px){.macros{grid-template-columns:repeat(4,1fr)}}
+  .macro{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+  .macro .k{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase}
+  .macro .v{font-weight:800;font-size:1.05rem;margin-top:2px}
+  .macro .s{font-size:.68rem;color:var(--soft)}
+  .advice{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+  .advice .a{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:.85rem;line-height:1.5}
+  .advice .a b{display:block;margin-bottom:2px}
+  .checklist{margin-top:14px;list-style:none;display:flex;flex-direction:column;gap:8px}
+  .checklist li{position:relative;padding-left:26px;font-size:.85rem;line-height:1.45;color:var(--ink)}
+  .checklist li:before{content:"✓";position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:.7rem;font-weight:800;display:flex;align-items:center;justify-content:center}
+
+  .proj{background:linear-gradient(160deg,var(--proj-bg1),var(--proj-bg2));border:1px solid var(--proj-bd);border-radius:14px;padding:18px}
+  .proj .goal{font-size:1rem;font-weight:800;color:var(--proj-ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .projgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:14px;align-items:start}
+  @media(min-width:520px){.projgrid{grid-template-columns:repeat(4,1fr)}}
+  .pj{background:var(--card);border:1px solid var(--proj-bd);border-radius:10px;padding:11px;text-align:center}
+  .pj .k{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase}
+  .pj .v{font-weight:800;font-size:1.1rem;margin-top:3px;color:var(--proj-ink)}
+  .pj .s{font-size:.68rem;color:var(--soft)}
+  .proj .foot{font-size:.78rem;color:var(--proj-ink);margin-top:12px;line-height:1.5;opacity:.9}
+
+  #actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .act-btn{flex:1;min-width:140px;padding:13px;border-radius:11px;font-size:.9rem;font-weight:700;cursor:pointer;border:1.5px solid var(--brand);background:var(--card);color:var(--brand-d);transition:.15s;display:flex;align-items:center;justify-content:center;gap:7px}
+  .act-btn:hover{background:var(--pick-bg)}
+  .act-btn.ok{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+  .act-btn.sec{border-color:var(--line);color:var(--muted)}
+  .act-btn.sec:hover{border-color:var(--brand);color:var(--brand-d);background:var(--pick-bg)}
+
+  .history h2{font-size:1.05rem;font-weight:800;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .history .sub{color:var(--muted);font-size:.84rem;margin-bottom:16px}
+  .cmp{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
+  @media(min-width:520px){.cmp{grid-template-columns:repeat(4,1fr)}}
+  .cm{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px;text-align:center}
+  .cm .k{font-size:.7rem;color:var(--muted);font-weight:600;text-transform:uppercase}
+  .cm .v{font-weight:800;font-size:1.1rem;margin-top:3px}
+  .cm .v.up{color:var(--ok)} .cm .v.down{color:var(--bad)} .cm .v.flat{color:var(--muted)}
+  .chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
+  .chart .ct{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:4px}
+  .chart .ct b{font-size:.9rem;color:var(--ink)}
+  .htable{width:100%;border-collapse:collapse;font-size:.82rem}
+  .htable th{text-align:left;color:var(--muted);font-weight:600;font-size:.72rem;text-transform:uppercase;padding:6px 8px;border-bottom:2px solid var(--line)}
+  .htable td{padding:8px;border-bottom:1px solid var(--line)}
+  .htable tr:last-child td{border-bottom:none}
+  .htable .del{cursor:pointer;color:var(--soft);border:none;background:none;font-size:1rem;padding:2px 6px;border-radius:6px}
+  .htable .del:hover{color:var(--bad);background:var(--bad-bg)}
+  .hist-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .hist-actions button{background:none;border:1px solid var(--line);color:var(--muted);font-size:.78rem;padding:7px 12px;border-radius:9px;cursor:pointer}
+  .hist-actions button:hover{border-color:var(--bad);color:var(--bad)}
+
+  .i{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:none;background:var(--soft);color:var(--card);font-size:.62rem;font-weight:700;font-style:italic;font-family:Georgia,'Times New Roman',serif;cursor:pointer;vertical-align:middle;margin-left:5px;line-height:1;padding:0;flex:none}
+  .i:hover{background:var(--brand)}
+  .tip{display:none;margin-top:9px;padding:9px 11px;background:var(--card);border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:8px;font-size:.76rem;line-height:1.5;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;text-align:left}
+  .tip.open{display:block}
+  .row .tip{flex-basis:100%}
+  .tiphint{font-size:.8rem;color:var(--muted);text-align:center;margin:0 0 6px;background:var(--surface);border:1px dashed var(--line);border-radius:9px;padding:9px}
+  #output.pdfing .i,#output.pdfing .tip,#output.pdfing .tiphint{display:none!important}
+  #output.pdfing .printhead{display:block!important}
+
+  .note{font-size:.76rem;color:var(--muted);text-align:center;line-height:1.55;margin-top:4px}
+  .note strong{color:var(--ink)}
+
+  .print-only{display:none}
+  .printhead{margin-bottom:18px;border-bottom:2px solid var(--line);padding-bottom:12px}
+  .printhead h2{font-size:1.3rem;font-weight:800}
+  .printhead p{font-size:.85rem;color:var(--muted);margin-top:4px}
+
+  @media print{
+    @page{margin:14mm}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    body{background:#fff;padding:0;display:block}
+    .wrap{max-width:100%}
+    .head,#form,#actions,.note,.placeholder,.hist-actions,.marker:after,#theme{display:none!important}
+    .print-only{display:block}
+    .result,.card{box-shadow:none;border:none;padding:0;margin:0 0 14px}
+    .block,.plan,.proj,.hero{break-inside:avoid}
+  }
+</style>
+<script src="html2pdf.bundle.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';document.head.appendChild(s);"></script>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <button id="theme" type="button" title="Modo claro/oscuro" aria-label="Cambiar tema">🌙</button>
+    <h1><span>🧬</span>Analizador Corporal &amp; Edad Metabólica</h1>
+    <p>Análisis profesional completo con solo una cinta métrica y una balanza.</p>
+  </header>
+
+  <form class="card" id="form" novalidate>
+    <div class="profilebar">
+      <div class="pf">
+        <label for="profileSel">Perfil</label>
+        <select id="profileSel"></select>
+      </div>
+      <button type="button" class="minibtn" id="newProfile">＋ Nuevo</button>
+      <button type="button" class="minibtn" id="renProfile">✎</button>
+    </div>
+
+    <div class="seg" role="radiogroup" aria-label="Género">
+      <label><input type="radio" name="gender" value="male" checked><span>♂ Masculino</span></label>
+      <label><input type="radio" name="gender" value="female"><span>♀ Femenino</span></label>
+    </div>
+
+    <div class="seg" role="radiogroup" aria-label="Unidades">
+      <label><input type="radio" name="unit" value="metric" checked><span>Métrico (kg/cm)</span></label>
+      <label><input type="radio" name="unit" value="imperial"><span>Imperial (lb/in)</span></label>
+    </div>
+
+    <div class="grid2">
+      <div class="sel"><label for="activity">Nivel de actividad</label>
+        <select id="activity">
+          <option value="1.2">Sedentario — poco o nada</option>
+          <option value="1.375">Ligero — 1-3 días/sem</option>
+          <option value="1.55" selected>Moderado — 3-5 días/sem</option>
+          <option value="1.725">Activo — 6-7 días/sem</option>
+          <option value="1.9">Muy activo — intenso/físico</option>
+        </select>
+      </div>
+      <div class="sel"><label for="goalSel">Objetivo</label>
+        <select id="goalSel">
+          <option value="auto" selected>Automático (recomendado)</option>
+          <option value="perder">Perder grasa</option>
+          <option value="recomp">Recomposición</option>
+          <option value="ganar">Ganar músculo</option>
+          <option value="mantener">Mantenimiento</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" data-field="targetbf" style="margin-bottom:18px">
+      <label for="targetbf">Meta de grasa corporal <span class="hint">· opcional, dejala vacía para la meta automática</span></label>
+      <div class="control"><input id="targetbf" type="number" inputmode="decimal" step="0.5" placeholder="auto"><span class="unit">%</span></div>
+      <div class="err"></div>
+    </div>
+
+    <div class="grid">
+      <div class="field" data-field="age"><label for="age">Edad cronológica</label><div class="control"><input id="age" type="number" inputmode="numeric" step="1" placeholder="30"><span class="unit">años</span></div><div class="err"></div></div>
+      <div class="field" data-field="weight"><label for="weight">Peso</label><div class="control"><input id="weight" type="number" inputmode="decimal" step="0.1" placeholder="70"><span class="unit" data-u="w">kg</span></div><div class="err"></div></div>
+      <div class="field" data-field="height"><label for="height">Altura</label><div class="control"><input id="height" type="number" inputmode="decimal" step="0.1" placeholder="170"><span class="unit" data-u="l">cm</span></div><div class="err"></div></div>
+      <div class="field" data-field="neck"><label for="neck">Cuello <span class="hint">· bajo la nuez</span></label><div class="control"><input id="neck" type="number" inputmode="decimal" step="0.1" placeholder="38"><span class="unit" data-u="l">cm</span></div><div class="err"></div></div>
+      <div class="field" data-field="waist"><label for="waist">Cintura <span class="hint">· en el ombligo</span></label><div class="control"><input id="waist" type="number" inputmode="decimal" step="0.1" placeholder="85"><span class="unit" data-u="l">cm</span></div><div class="err"></div></div>
+      <div class="field hide" data-field="hip"><label for="hip">Caderas <span class="hint">· parte más ancha</span></label><div class="control"><input id="hip" type="number" inputmode="decimal" step="0.1" placeholder="95"><span class="unit" data-u="l">cm</span></div><div class="err"></div></div>
+    </div>
+
+    <details class="help" style="margin-top:18px">
+      <summary>📏 Cómo medir correctamente</summary>
+      <div class="body">
+        <p><b>Cuello:</b> justo debajo de la nuez de Adán, con la cinta levemente inclinada hacia abajo al frente. No aprietes.</p>
+        <p><b>Cintura:</b> a la altura del ombligo, relajado, al final de una espiración normal (sin meter la panza).</p>
+        <p><b>Caderas:</b> en la parte más ancha de los glúteos, con los pies juntos.</p>
+        <p><b>Peso:</b> a la mañana, en ayunas y después de ir al baño, para mayor consistencia.</p>
+        <p><b>Altura:</b> descalzo, talones contra la pared, mirada al frente.</p>
+        <p>Tomá cada medida 2-3 veces y usá el promedio. La cinta debe quedar firme pero sin marcar la piel.</p>
+      </div>
+    </details>
+
+    <button class="btn" type="submit">Analizar mi composición corporal</button>
+  </form>
+
+  <section class="result empty" id="result" aria-live="polite">
+    <p class="placeholder">Completá tus datos para ver tu análisis completo.</p>
+    <div id="output"></div>
+    <div id="actions">
+      <button type="button" class="act-btn" id="saveBtn">💾 Guardar medición</button>
+      <button type="button" class="act-btn" id="pdfBtn">🖨️ Descargar PDF</button>
+    </div>
+  </section>
+
+  <section class="card history" id="history" style="display:none"></section>
+
+  <details class="card help" id="method">
+    <summary>📚 Metodología y fuentes</summary>
+    <div class="body">
+      <p><b>% grasa corporal (US Navy):</b> Hodgdon &amp; Beckett (1984), Naval Health Research Center. Basado en circunferencias.</p>
+      <p><b>% grasa (RFM):</b> Woolcott &amp; Bergman (2018), <i>Scientific Reports</i>. Relative Fat Mass, validado contra DXA: 64 (h) / 76 (m) − 20 × (altura/cintura).</p>
+      <p><b>TMB Mifflin-St Jeor (1990):</b> 10·peso + 6,25·altura − 5·edad ± (5 h / −161 m).</p>
+      <p><b>TMB Katch-McArdle:</b> 370 + 21,6 · masa magra (kg). Más preciso cuando se conoce la grasa corporal. Mostramos el promedio de ambas.</p>
+      <p><b>% grasa ideal por edad:</b> tablas de Jackson &amp; Pollock.</p>
+      <p><b>FFMI:</b> Kouri et al. (1995), normalizado a 1,80 m.</p>
+      <p><b>Riesgo de cintura:</b> umbrales OMS/NIH; índice cintura/altura según Ashwell (ideal &lt; 0,5).</p>
+      <p><b>Proyección de grasa:</b> ≈ 7.700 kcal por kg de grasa corporal.</p>
+      <p style="margin-top:10px;color:var(--soft)">Todas son estimaciones poblacionales con fines educativos; no reemplazan una medición clínica (DXA, hidrodensitometría) ni el consejo de un profesional.</p>
+    </div>
+  </details>
+
+  <p class="note">
+    <strong>%GC:</strong> US Navy + RFM · <strong>TMB:</strong> Mifflin-St Jeor + Katch-McArdle · Estimaciones orientativas, no son diagnóstico médico.
+  </p>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // RANGOS internos siempre en MÉTRICO (kg, cm)
+  const RANGES={age:{min:15,max:100,int:true,u:null},weight:{min:30,max:300,u:'w'},height:{min:120,max:230,u:'l'},neck:{min:20,max:80,u:'l'},waist:{min:40,max:200,u:'l'},hip:{min:50,max:200,u:'l'}};
+  const IDEAL={ages:[20,25,30,35,40,45,50,55],male:[8.5,10.5,12.7,13.7,15.3,16.4,18.9,20.9],female:[17.7,18.4,19.3,21.5,22.2,22.9,25.2,26.3]};
+  const ESSENTIAL={male:3,female:12};
+  const KCAL_KG=7700, PKEY='composicion_perfiles_v1', OLDKEY='composicion_historial_v1', TKEY='composicion_tema';
+  const LB=2.2046226, INCH=0.3937008;
+
+  const INFO={
+    metaage:'La edad que aparenta tu cuerpo según tu nivel de grasa, comparado con lo ideal para tu edad. Si es menor que tu edad real, tu composición es mejor que el promedio de tu edad.',
+    bf:'Qué porcentaje de tu peso es grasa, estimado con el método US Navy (circunferencias). Al lado mostramos también el método RFM para que tengas un rango más confiable.',
+    rfm:'Relative Fat Mass: un método más nuevo (2018) validado contra DXA que estima la grasa solo con tu altura y cintura. Sirve para cruzar con el método US Navy.',
+    idealbf:'El porcentaje de grasa saludable de referencia para tu edad y sexo. Es el valor con el que se compara tu grasa para calcular la edad metabólica.',
+    fatmass:'Los kilos de tu peso que son grasa pura (tu peso por tu porcentaje de grasa).',
+    leanmass:'Todo lo que NO es grasa: músculo, huesos, órganos y agua. Es la parte que querés conservar o aumentar.',
+    ffmi:'Índice de Masa Libre de Grasa. Mide tu músculo en relación a tu altura, sin que la grasa lo distorsione. ~19 es promedio, 22+ es muy musculoso; el límite natural ronda 25.',
+    pesotarget:'Cuánto pesarías si llegaras a esa meta de grasa manteniendo todo tu músculo actual. Es un objetivo realista, no un peso ideal genérico.',
+    whtr:'Tu cintura dividida por tu altura. El mejor predictor simple de riesgo cardíaco y metabólico: lo ideal es menos de 0,5 (cintura menor a la mitad de tu altura).',
+    waist:'Tu cintura refleja la grasa visceral (la que rodea los órganos), la más peligrosa. Preocupa desde 94 cm en hombres y 80 cm en mujeres.',
+    whr:'Tu cintura dividida por tu cadera. Indica si acumulás grasa en el abdomen (más riesgoso) o en las caderas. En mujeres lo ideal es menos de 0,80.',
+    imc:'Índice de Masa Corporal: peso en relación a la altura. Es una referencia rápida pero NO distingue músculo de grasa; por eso lo complementamos con el % de grasa.',
+    tmb:'Tasa Metabólica Basal: las calorías que quemás por día en reposo absoluto, solo para seguir vivo. Mostramos el promedio de Mifflin-St Jeor y Katch-McArdle.',
+    tdee:'Gasto energético total diario: las calorías que quemás en un día con tu actividad. Comer esta cantidad mantiene tu peso.',
+    calperder:'Calorías para perder grasa: un déficit (~20 % bajo tu gasto) que obliga al cuerpo a usar grasa como energía.',
+    calmant:'Calorías para mantener tu peso actual: igual a tu gasto total diario.',
+    calganar:'Calorías para ganar músculo: un superávit (~10 % sobre tu gasto) que aporta el material para construir músculo.',
+    calplan:'Las calorías diarias recomendadas para tu objetivo. Es la cifra a seguir cada día.',
+    prot:'Proteína: construye y conserva músculo, lo más importante en cualquier objetivo. Carne, pollo, pescado, huevo, lácteos, legumbres.',
+    fat:'Grasas saludables: esenciales para tus hormonas. Aceite de oliva, palta, frutos secos, huevo.',
+    carb:'Carbohidratos: tu principal fuente de energía para entrenar. Arroz, papa, avena, frutas. Se ajustan con las calorías restantes.'
+  };
+
+  const log10=Math.log10, clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+  const n0=x=>Math.round(x).toLocaleString('es-AR');
+  const n1=x=>x.toLocaleString('es-AR',{minimumFractionDigits:1,maximumFractionDigits:1});
+  const fmtDate=d=>d.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  const addDays=(d,n)=>new Date(d.getTime()+n*86400000);
+
+  // ---- Unidades ----
+  let unit='metric';
+  const isImp=()=>unit==='imperial';
+  const toKg=v=>isImp()?v/LB:v;
+  const toCm=v=>isImp()?v/INCH:v;
+  const wDisp=kg=>isImp()?kg*LB:kg;          // valor para mostrar
+  const lDisp=cm=>isImp()?cm*INCH:cm;
+  const wU=()=>isImp()?'lb':'kg';
+  const lU=()=>isImp()?'in':'cm';
+
+  // ---- Cálculos ----
+  function bodyFatNavy(g,waist,neck,height,hip){
+    return g==='male'?495/(1.0324-0.19077*log10(waist-neck)+0.15456*log10(height))-450
+                     :495/(1.29579-0.35004*log10(waist+hip-neck)+0.22100*log10(height))-450;
+  }
+  function bodyFatRFM(g,height,waist){ return (g==='male'?64:76)-20*(height/waist); }
+  function bmrMifflin(g,weight,height,age){const b=10*weight+6.25*height-5*age;return g==='male'?b+5:b-161;}
+  function bmrKatch(leanMass){return 370+21.6*leanMass;}
+  function idealBodyFat(g,age){
+    const xs=IDEAL.ages,ys=IDEAL[g],n=xs.length;
+    if(age<=xs[0]){const s=(ys[1]-ys[0])/(xs[1]-xs[0]);return Math.max(ys[0]+s*(age-xs[0]),ESSENTIAL[g]+2);}
+    if(age>=xs[n-1]){const s=(ys[n-1]-ys[n-2])/(xs[n-1]-xs[n-2]);return Math.min(ys[n-1]+s*(age-xs[n-1]),g==='male'?28:33);}
+    for(let i=0;i<n-1;i++) if(age>=xs[i]&&age<=xs[i+1]){const t=(age-xs[i])/(xs[i+1]-xs[i]);return ys[i]+t*(ys[i+1]-ys[i]);}
+  }
+  function bfCategory(g,bf){
+    const t=g==='male'?[[5,'Grasa esencial','info'],[13,'Atlético','ok'],[17,'En forma','ok'],[24,'Aceptable','warn'],[Infinity,'Elevado','bad']]
+                       :[[13,'Grasa esencial','info'],[20,'Atlético','ok'],[24,'En forma','ok'],[31,'Aceptable','warn'],[Infinity,'Elevado','bad']];
+    for(const [m,label,level] of t) if(bf<=m) return {label,level};
+  }
+  function bmiCategory(b){if(b<18.5)return{label:'Bajo peso',level:'warn'};if(b<25)return{label:'Normal',level:'ok'};if(b<30)return{label:'Sobrepeso',level:'warn'};if(b<35)return{label:'Obesidad I',level:'bad'};if(b<40)return{label:'Obesidad II',level:'bad'};return{label:'Obesidad III',level:'bad'};}
+  function whtrCategory(w){if(w<0.40)return{label:'Bajo',level:'warn'};if(w<0.50)return{label:'Saludable',level:'ok'};if(w<0.60)return{label:'Riesgo aumentado',level:'warn'};return{label:'Riesgo alto',level:'bad'};}
+  function waistRisk(g,waist){const t=g==='male'?[94,102]:[80,88];if(waist<t[0])return{label:'Bajo',level:'ok'};if(waist<t[1])return{label:'Aumentado',level:'warn'};return{label:'Alto',level:'bad'};}
+  function whrCategory(whr){if(whr<0.80)return{label:'Bajo',level:'ok'};if(whr<0.85)return{label:'Moderado',level:'warn'};return{label:'Alto',level:'bad'};}
+  function ffmiCategory(g,f){const t=g==='male'?[[18,'Por debajo del promedio'],[20,'Promedio'],[22,'Buen desarrollo'],[23,'Excelente'],[26,'Superior'],[Infinity,'Excepcional']]
+                                              :[[15,'Por debajo del promedio'],[17,'Promedio'],[19,'Buen desarrollo'],[21,'Excelente'],[22,'Superior'],[Infinity,'Excepcional']];
+    for(const [m,label] of t) if(f<m) return label;}
+  function recommendGoal(g,bf,ffmi){const high=g==='male'?25:32,mid=g==='male'?18:25,ffmiLow=g==='male'?19:15.5;if(bf>=high)return'perder';if(bf>=mid)return'recomp';if(ffmi<ffmiLow)return'ganar';return'mantener';}
+
+  const PLANS={
+    perder:{goal:'🔥 Pérdida de grasa (preservando músculo)',desc:'Tu prioridad es bajar el % de grasa. Déficit calórico moderado + entrenamiento de fuerza para conservar músculo mientras perdés grasa.',train:'Fuerza 3-4 días/semana con compuestos pesados (sentadilla, peso muerto, press, dominadas, remo). Mantené cargas altas para proteger el músculo.',cardio:'Caminata rápida 30-45 min + 1-2 HIIT cortos. Apuntá a 8.000-12.000 pasos diarios (NEAT).',key:'Proteína alta (≥2 g/kg) y dormir 7-9 h: lo que más protege tu músculo en déficit.'},
+    recomp:{goal:'♻️ Recomposición corporal',desc:'Estás en el punto ideal para ganar músculo y perder grasa a la vez, comiendo cerca de mantenimiento con proteína alta y fuerza progresiva. Ideal si sos principiante o estás retomando.',train:'Fuerza 4 días/semana (torso-pierna o empuje-tirón-pierna). Prioridad: sobrecarga progresiva semana a semana.',cardio:'2 sesiones moderadas por salud cardiovascular. Sin excederte para no comprometer la recuperación.',key:'Es lento pero real: pensá en 3-6 meses, proteína ~2 g/kg y constancia.'},
+    ganar:{goal:'💪 Ganancia de masa muscular',desc:'Estás magro pero con margen para más músculo. Superávit calórico controlado (volumen limpio) para maximizar hipertrofia con poca grasa.',train:'Fuerza 4-5 días/semana (push-pull-legs o torso-pierna), 10-20 series por grupo/semana, 6-12 reps cerca del fallo.',cardio:'1-2 sesiones ligeras solo por salud. No abuses para no quemar el superávit.',key:'Superávit de +250 a +400 kcal. Subí ~0,25-0,5 % de peso por semana; más rápido es casi todo grasa.'},
+    mantener:{goal:'🏆 ¡Gran nivel! Mantenimiento y rendimiento',desc:'Tu composición ya es excelente. El foco es mantenerla y progresar en fuerza, rendimiento o estética. Estás en posición de periodizar.',train:'Fuerza 4-5 días/semana periodizando bloques de fuerza e hipertrofia.',cardio:'2-3 sesiones por salud cardiovascular y capacidad aeróbica.',key:'Definí un objetivo concreto (una marca, un físico) y periodizá hacia él. Mantené la proteína alta.'}
+  };
+
+  // ---- DOM ----
+  const form=document.getElementById('form'), result=document.getElementById('result'),
+        output=document.getElementById('output'), historyEl=document.getElementById('history'),
+        saveBtn=document.getElementById('saveBtn'), pdfBtn=document.getElementById('pdfBtn'),
+        profileSel=document.getElementById('profileSel'), themeBtn=document.getElementById('theme');
+  const touched={}; let submitted=false; let lastCalc=null;
+
+  const genderVal=()=>form.querySelector('input[name="gender"]:checked').value;
+  const fieldEl=id=>form.querySelector('.field[data-field="'+id+'"]');
+  const inputEl=id=>document.getElementById(id);
+  function setError(id,msg){const f=fieldEl(id);f.querySelector('.err').textContent=msg||'';f.classList.toggle('invalid',!!msg&&(touched[id]||submitted));}
+
+  function validate(){
+    const g=genderVal();
+    const active=['age','weight','height','neck','waist'];
+    if(g==='female') active.push('hip');
+    const vals={gender:g,activity:parseFloat(inputEl('activity').value),goalSel:inputEl('goalSel').value};
+    let ok=true;
+    for(const id of active){
+      const raw=inputEl(id).value.trim(),R=RANGES[id];
+      let num=parseFloat(raw), msg='';
+      if(raw==='') msg='Requerido';
+      else if(!isFinite(num)) msg='Número inválido';
+      else {
+        const metric = R.u==='w'?toKg(num) : R.u==='l'?toCm(num) : num;
+        if(metric<R.min||metric>R.max){
+          const dispMin=R.u==='w'?wDisp(R.min):R.u==='l'?lDisp(R.min):R.min;
+          const dispMax=R.u==='w'?wDisp(R.max):R.u==='l'?lDisp(R.max):R.max;
+          const u=R.u==='w'?' '+wU():R.u==='l'?' '+lU():'';
+          msg='Entre '+Math.round(dispMin)+' y '+Math.round(dispMax)+u;
+        } else if(R.int&&num%1!==0) msg='Sin decimales';
+        else vals[id]=metric; // guardamos en métrico
+      }
+      if(msg) ok=false;
+      setError(id,msg);
+    }
+    // meta de grasa opcional
+    const tRaw=inputEl('targetbf').value.trim();
+    if(tRaw!==''){ const t=parseFloat(tRaw); if(!isFinite(t)||t<3||t>50){ ok=false; setError('targetbf','Entre 3 y 50 %'); } else { vals.targetbf=t; setError('targetbf',''); } }
+    else setError('targetbf','');
+    if(vals.waist!=null&&vals.neck!=null){
+      const reduced=g==='male'?vals.waist-vals.neck:vals.waist+(vals.hip||0)-vals.neck;
+      if(reduced<=0){ok=false; setError('waist','La cintura debe ser mayor que el cuello');}
+    }
+    return {ok,vals};
+  }
+
+  const chip=c=>'<span class="chip '+c.level+'">'+c.label+'</span>';
+
+  function render(v){
+    const {gender:g,age,weight:peso,height:altura,neck,waist,hip,activity}=v;
+    const aM=altura/100, HOY=new Date();
+
+    const bf=clamp(bodyFatNavy(g,waist,neck,altura,hip),2,60);
+    const rfm=clamp(bodyFatRFM(g,altura,waist),2,60);
+    const ideal=idealBodyFat(g,age);
+    const fatMass=peso*bf/100, leanMass=peso-fatMass;
+    const mifflin=bmrMifflin(g,peso,altura,age), katch=bmrKatch(leanMass);
+    const tmb=(mifflin+katch)/2, tdee=tmb*activity;
+    const bmi=peso/(aM*aM);
+    const ffmi=leanMass/(aM*aM)+6.1*(1.8-aM);
+    const whtr=waist/altura, whr=(g==='female'&&hip)?waist/hip:null;
+
+    const effective=Math.max(bf,ESSENTIAL[g]);
+    const meta=clamp(Math.round(age+(effective-ideal)),15,99);
+    const diff=meta-age, younger=meta<=age;
+
+    const goal=(v.goalSel&&v.goalSel!=='auto')?v.goalSel:recommendGoal(g,bf,ffmi);
+    const plan=PLANS[goal];
+    const autoFlag=(!v.goalSel||v.goalSel==='auto');
+
+    const cPerder=tdee*0.80, cMant=tdee, cGanar=tdee*1.10;
+    const calMeta=goal==='perder'?cPerder:goal==='ganar'?cGanar:goal==='recomp'?tdee*0.95:tdee;
+    const protKg=goal==='ganar'?1.8:2.0;
+    const prot=peso*protKg, fat=peso*0.9, carb=Math.max((calMeta-prot*4-fat*9)/4,0), agua=peso*0.035;
+    const pesoMin=18.5*aM*aM, pesoMax=24.9*aM*aM;
+    const targetBF=v.targetbf!=null?v.targetbf:(g==='male'?14:23);
+    const pesoTarget=leanMass/(1-targetBF/100);
+
+    lastCalc={g,age,weight:peso,bf:+bf.toFixed(1),fatMass:+fatMass.toFixed(1),leanMass:+leanMass.toFixed(1),metaAge:meta,waist,ffmi:+ffmi.toFixed(1),bmi:+bmi.toFixed(1)};
+
+    // Barra de zonas
+    const scale=g==='male'?{min:2,max:35}:{min:10,max:45};
+    const segs=g==='male'?[[5,'#3b82f6','Esencial','≤5%'],[13,'#16a34a','Atlético','5-13%'],[17,'#22c55e','En forma','13-17%'],[24,'#f59e0b','Aceptable','17-24%'],[35,'#dc2626','Elevado','>24%']]
+                         :[[13,'#3b82f6','Esencial','≤13%'],[20,'#16a34a','Atlético','13-20%'],[24,'#22c55e','En forma','20-24%'],[31,'#f59e0b','Aceptable','24-31%'],[45,'#dc2626','Elevado','>31%']];
+    const cat=bfCategory(g,bf);
+    let prev=scale.min,bars='',legend='';
+    for(const [smax,color,name,rng] of segs){const w=(smax-prev)/(scale.max-scale.min)*100;prev=smax;bars+='<div class="zone" style="width:'+w+'%;background:'+color+'"></div>';legend+='<span class="li'+(name===cat.label?' act':'')+'"><span class="dot" style="background:'+color+'"></span>'+name+' '+rng+'</span>';}
+    const left=clamp((bf-scale.min)/(scale.max-scale.min)*100,0,100);
+    const barHtml='<div class="bfbar"><div class="bar">'+bars+'<div class="marker" style="left:'+left+'%"><b>'+n1(bf)+'%</b></div></div><div class="legend">'+legend+'</div></div>';
+    const divergeNote=Math.abs(bf-rfm)>5?'<p class="tiphint" style="margin-top:8px">⚠️ US Navy ('+n1(bf)+'%) y RFM ('+n1(rfm)+'%) difieren bastante: tomá tu grasa como un rango y verificá tus medidas.</p>':'';
+
+    // Salud
+    const wRisk=waistRisk(g,waist),whtrC=whtrCategory(whtr),bmiC=bmiCategory(bmi);
+    const bmiNote=(bmi>=25&&(cat.level==='ok'||cat.level==='info'))?' · ⚠️ IMC alto pero grasa baja: probablemente sea músculo (el IMC no lo distingue)':'';
+    let healthRows=
+      '<div class="row"><div class="lab"><b>Índice cintura/altura</b><small>predictor clave de riesgo · ideal &lt;0,5</small></div><div class="right"><span class="num">'+whtr.toFixed(2)+'</span>'+chip(whtrC)+'</div></div>'+
+      '<div class="row"><div class="lab"><b>Circunferencia de cintura</b><small>grasa visceral · '+(g==='male'?'≥94/102':'≥80/88')+' '+lU()+'</small></div><div class="right"><span class="num">'+n1(lDisp(waist))+' '+lU()+'</span>'+chip(wRisk)+'</div></div>';
+    if(whr!=null) healthRows+='<div class="row"><div class="lab"><b>Índice cintura/cadera</b><small>distribución de grasa · ideal &lt;0,80</small></div><div class="right"><span class="num">'+whr.toFixed(2)+'</span>'+chip(whrCategory(whr))+'</div></div>';
+    healthRows+='<div class="row"><div class="lab"><b>IMC</b><small>'+n1(wDisp(pesoMin))+'–'+n1(wDisp(pesoMax))+' '+wU()+' sería tu rango normal'+bmiNote+'</small></div><div class="right"><span class="num">'+bmi.toFixed(1)+'</span>'+chip(bmiC)+'</div></div>';
+
+    // Checklist
+    const steps=[];
+    steps.push('Consumí <b>'+n0(prot)+' g de proteína</b> al día (~'+n1(protKg)+' g/kg).');
+    if(goal==='perder') steps.push('Comé alrededor de <b>'+n0(calMeta)+' kcal/día</b> (déficit) para perder grasa de forma sostenible.');
+    else if(goal==='ganar') steps.push('Comé alrededor de <b>'+n0(calMeta)+' kcal/día</b> (superávit) subiendo de a poco.');
+    else if(goal==='recomp') steps.push('Comé cerca de <b>'+n0(calMeta)+' kcal/día</b> priorizando la proteína.');
+    else steps.push('Mantené tus calorías cerca de <b>'+n0(calMeta)+' kcal/día</b>.');
+    steps.push('Entrená fuerza <b>'+((goal==='ganar'||goal==='mantener')?'4-5':'3-4')+' días/semana</b> con sobrecarga progresiva.');
+    if(whtr>=0.5) steps.push('Tu cintura/altura ('+whtr.toFixed(2)+') está elevado: bajar la cintura reduce tu riesgo cardiometabólico.');
+    if(bf>targetBF+1) steps.push('Llegando a <b>'+n1(targetBF)+'% de grasa</b> manteniendo tu músculo, pesarías ~<b>'+n1(wDisp(pesoTarget))+' '+wU()+'</b>.');
+    steps.push('Caminá <b>8.000-12.000 pasos</b>, dormí <b>7-9 h</b> y tomá ~<b>'+n1(agua)+' L de agua</b>.');
+
+    // Proyección
+    let projHtml='';
+    if((goal==='perder'||goal==='recomp')&&bf>targetBF+0.5){
+      const grasaAPerder=peso-pesoTarget, deficit=Math.max(tdee-calMeta,1);
+      const kgSem=(deficit*7)/KCAL_KG, semanas=grasaAPerder/kgSem, pctSem=kgSem/peso*100;
+      const fecha=addDays(HOY,semanas*7), meses=semanas/4.345;
+      const ritmoNota=pctSem>1?' (algo agresivo)':pctSem<0.3?' (suave)':'';
+      projHtml='<div class="proj"><div class="goal">⏱️ Proyección: llegar a '+n1(targetBF)+'% de grasa</div>'+
+        '<div class="projgrid">'+
+          '<div class="pj"><div class="k">Grasa a perder</div><div class="v">'+n1(wDisp(grasaAPerder))+' '+wU()+'</div><div class="s">hasta ~'+n1(wDisp(pesoTarget))+' '+wU()+'</div></div>'+
+          '<div class="pj"><div class="k">Ritmo estimado</div><div class="v">'+n1(wDisp(kgSem))+' '+wU()+'/sem</div><div class="s">'+n1(pctSem)+' %/sem'+ritmoNota+'</div></div>'+
+          '<div class="pj"><div class="k">Tiempo</div><div class="v">'+Math.round(semanas)+' sem</div><div class="s">~'+n1(meses)+' meses</div></div>'+
+          '<div class="pj"><div class="k">Fecha estimada</div><div class="v" style="font-size:.9rem">'+fmtDate(fecha)+'</div><div class="s">a ritmo constante</div></div>'+
+        '</div><p class="foot">Asume que el déficit ('+n0(deficit)+' kcal/día) se traduce en grasa, con proteína alta y fuerza. El ritmo real varía según adherencia y adaptaciones.</p></div>';
+    } else if(goal==='ganar'){
+      const ffmiLow=g==='male'?19:15.5, ffmiMid=g==='male'?22:19;
+      const nivel=ffmi<ffmiLow?'principiante':ffmi<ffmiMid?'intermedio':'avanzado';
+      const tasaMes=nivel==='principiante'?0.010:nivel==='intermedio'?0.006:0.003, ganMes=peso*tasaMes;
+      projHtml='<div class="proj"><div class="goal">⏱️ Proyección: ganancia muscular</div>'+
+        '<div class="projgrid">'+
+          '<div class="pj"><div class="k">Nivel estimado</div><div class="v" style="font-size:.95rem;text-transform:capitalize">'+nivel+'</div><div class="s">según tu FFMI</div></div>'+
+          '<div class="pj"><div class="k">Ritmo realista</div><div class="v">'+n1(wDisp(ganMes))+' '+wU()+'/mes</div><div class="s">'+n1(tasaMes*100)+' % peso/mes</div></div>'+
+          '<div class="pj"><div class="k">En 3 meses</div><div class="v">+'+n1(wDisp(ganMes*3))+' '+wU()+'</div><div class="s">~'+n1(wDisp(peso+ganMes*3))+' '+wU()+'</div></div>'+
+          '<div class="pj"><div class="k">En 6 meses</div><div class="v">+'+n1(wDisp(ganMes*6))+' '+wU()+'</div><div class="s">~'+n1(wDisp(peso+ganMes*6))+' '+wU()+'</div></div>'+
+        '</div><p class="foot">La ganancia muscular se desacelera con la experiencia. Asume superávit controlado, proteína alta y progresión de cargas.</p></div>';
+    } else {
+      projHtml='<div class="proj"><div class="goal">⏱️ Proyección temporal</div><p class="foot" style="margin-top:6px">Ya estás en tu objetivo de composición. Definí una meta concreta (o una meta de grasa arriba) y el estimador proyectará el tiempo para alcanzarla.</p></div>';
+    }
+
+    const printHead='<div class="print-only printhead"><h2>🧬 Informe de Composición Corporal</h2><p>Generado el '+fmtDate(HOY)+' · '+(g==='male'?'Masculino':'Femenino')+' · '+age+' años · '+n1(wDisp(peso))+' '+wU()+' · '+n1(lDisp(altura))+' '+lU()+' · cintura '+n1(lDisp(waist))+' '+lU()+'</p></div>';
+
+    output.innerHTML=
+      printHead+
+      '<div class="hero '+(younger?'good':'bad')+'"><div class="eyebrow">Tu edad metabólica es</div><div class="big">'+meta+'<small> años</small></div><div class="badge">'+(younger?'✓ Por debajo de tu edad real':'▲ Por encima de tu edad real')+'</div><p class="msg">'+(diff<0?'¡Excelente! Tu composición es la de alguien más joven que vos.':diff===0?'Tu edad metabólica coincide con tu edad cronológica.':'Tu edad metabólica supera tu edad real en '+diff+' año(s): reducir grasa la mejora.')+'</p></div>'+
+      '<div class="tiphint">💡 Tocá la <b>ⓘ</b> junto a cada dato para entender qué significa.</div>'+
+      '<div class="block"><h3><span class="em">📊</span>Composición corporal</h3>'+barHtml+divergeNote+
+        '<div class="stats c3">'+
+          '<div class="stat"><div class="k">Grasa (US Navy)</div><div class="v">'+n1(bf)+'%</div><div class="s">'+cat.label+'</div></div>'+
+          '<div class="stat"><div class="k">Grasa (RFM)</div><div class="v">'+n1(rfm)+'%</div><div class="s">método alternativo</div></div>'+
+          '<div class="stat"><div class="k">%GC ideal (edad)</div><div class="v">'+n1(ideal)+'%</div><div class="s">referencia</div></div>'+
+          '<div class="stat"><div class="k">Masa grasa</div><div class="v">'+n1(wDisp(fatMass))+' '+wU()+'</div><div class="s">a optimizar</div></div>'+
+          '<div class="stat"><div class="k">Masa magra</div><div class="v">'+n1(wDisp(leanMass))+' '+wU()+'</div><div class="s">músculo+huesos+órganos</div></div>'+
+          '<div class="stat"><div class="k">FFMI</div><div class="v">'+n1(ffmi)+'</div><div class="s">'+ffmiCategory(g,ffmi)+'</div></div>'+
+          '<div class="stat"><div class="k">Peso a '+n1(targetBF)+'% grasa</div><div class="v">'+n1(wDisp(pesoTarget))+' '+wU()+'</div><div class="s">'+(bf>targetBF?'meta saludable':'ya por debajo')+'</div></div>'+
+        '</div></div>'+
+      '<div class="block"><h3><span class="em">❤️</span>Indicadores de salud</h3><div class="rows">'+healthRows+'</div></div>'+
+      '<div class="block"><h3><span class="em">🔥</span>Metabolismo y energía</h3>'+
+        '<div class="stats" style="margin-bottom:10px"><div class="stat"><div class="k">TMB (basal)</div><div class="v">'+n0(tmb)+'</div><div class="s">Mifflin '+n0(mifflin)+' · Katch '+n0(katch)+'</div></div><div class="stat"><div class="k">TDEE (gasto total)</div><div class="v">'+n0(tdee)+'</div><div class="s">kcal/día con tu actividad</div></div></div>'+
+        '<div class="cals"><div class="cal'+(goal==='perder'?' pick':'')+'"><div class="t">Perder grasa</div><div class="n">'+n0(cPerder)+'</div><div class="u">kcal/día (−20%)</div></div><div class="cal'+((goal==='recomp'||goal==='mantener')?' pick':'')+'"><div class="t">Mantener</div><div class="n">'+n0(cMant)+'</div><div class="u">kcal/día</div></div><div class="cal'+(goal==='ganar'?' pick':'')+'"><div class="t">Ganar músculo</div><div class="n">'+n0(cGanar)+'</div><div class="u">kcal/día (+10%)</div></div></div></div>'+
+      '<div class="block"><h3><span class="em">🎯</span>Tu plan recomendado</h3><div class="plan"><div class="goal">'+plan.goal+(autoFlag?'':' <span class="chip info" style="font-weight:700">elegido por vos</span>')+'</div><p class="desc">'+plan.desc+'</p>'+
+        '<div class="macros"><div class="macro"><div class="k">Calorías</div><div class="v">'+n0(calMeta)+'</div><div class="s">kcal/día</div></div><div class="macro"><div class="k">Proteína</div><div class="v">'+n0(prot)+' g</div><div class="s">~'+n1(protKg)+' g/kg</div></div><div class="macro"><div class="k">Grasas</div><div class="v">'+n0(fat)+' g</div><div class="s">~0,9 g/kg</div></div><div class="macro"><div class="k">Carbohidratos</div><div class="v">'+n0(carb)+' g</div><div class="s">resto</div></div></div>'+
+        '<div class="advice"><div class="a"><b>💪 Entrenamiento</b>'+plan.train+'</div><div class="a"><b>🏃 Cardio y NEAT</b>'+plan.cardio+'</div><div class="a"><b>🔑 Factor clave</b>'+plan.key+'</div></div>'+
+        '<ul class="checklist">'+steps.map(s=>'<li>'+s+'</li>').join('')+'</ul></div></div>'+
+      '<div class="block"><h3><span class="em">⏱️</span>Proyección temporal</h3>'+projHtml+'</div>';
+
+    attachTips();
+  }
+
+  function attachTips(){
+    const add=(labelEl,cardEl,key)=>{
+      if(!labelEl||!cardEl||!INFO[key]||cardEl.querySelector(':scope > .tip')) return;
+      const b=document.createElement('button'); b.type='button'; b.className='i'; b.textContent='i'; b.setAttribute('aria-label','Qué significa'); b.dataset.tip=key;
+      labelEl.appendChild(b);
+      const tip=document.createElement('div'); tip.className='tip'; tip.textContent=INFO[key]; cardEl.appendChild(tip);
+    };
+    const STAT={'Grasa (US Navy)':'bf','Grasa (RFM)':'rfm','%GC ideal (edad)':'idealbf','Masa grasa':'fatmass','Masa magra':'leanmass','FFMI':'ffmi','TMB (basal)':'tmb','TDEE (gasto total)':'tdee'};
+    output.querySelectorAll('.stat').forEach(c=>{const k=c.querySelector('.k');const t=k.textContent.trim();add(k,c,t.indexOf('Peso a')===0?'pesotarget':STAT[t]);});
+    const CAL={'Perder grasa':'calperder','Mantener':'calmant','Ganar músculo':'calganar'};
+    output.querySelectorAll('.cal').forEach(c=>{const k=c.querySelector('.t');add(k,c,CAL[k.textContent.trim()]);});
+    const MAC={'Calorías':'calplan','Proteína':'prot','Grasas':'fat','Carbohidratos':'carb'};
+    output.querySelectorAll('.macro').forEach(c=>{const k=c.querySelector('.k');add(k,c,MAC[k.textContent.trim()]);});
+    const ROW={'Índice cintura/altura':'whtr','Circunferencia de cintura':'waist','Índice cintura/cadera':'whr','IMC':'imc'};
+    output.querySelectorAll('.row').forEach(r=>{const b=r.querySelector('.lab b');if(b)add(b,r,ROW[b.textContent.trim()]);});
+    const he=output.querySelector('.hero .eyebrow'); if(he) add(he,output.querySelector('.hero'),'metaage');
+  }
+
+  function update(){
+    const {ok,vals}=validate();
+    if(ok){ result.classList.remove('empty'); render(vals); }
+    else { result.classList.add('empty'); lastCalc=null; }
+  }
+
+  // ---- Perfiles + historial ----
+  function loadStore(){
+    let s; try{s=JSON.parse(localStorage.getItem(PKEY));}catch(e){}
+    if(!s||!s.data){ s={current:'Principal',data:{Principal:[]}};
+      try{const old=JSON.parse(localStorage.getItem(OLDKEY)); if(Array.isArray(old)&&old.length) s.data.Principal=old;}catch(e){}
+    }
+    return s;
+  }
+  function saveStore(s){ try{localStorage.setItem(PKEY,JSON.stringify(s));}catch(e){} }
+  let store=loadStore();
+  const curHist=()=>store.data[store.current]||[];
+  const setHist=a=>{ store.data[store.current]=a; saveStore(store); };
+
+  function renderProfiles(){
+    profileSel.innerHTML=Object.keys(store.data).map(n=>'<option'+(n===store.current?' selected':'')+'>'+n+'</option>').join('');
+  }
+
+  function spark(vals,color){
+    const w=300,h=46,pad=5,n=vals.length;
+    if(n<2) return '';
+    const min=Math.min(...vals),max=Math.max(...vals),rng=(max-min)||1;
+    const xy=i=>[pad+i/(n-1)*(w-2*pad), h-pad-(vals[i]-min)/rng*(h-2*pad)];
+    let pts='',dots='';
+    for(let i=0;i<n;i++){const [x,y]=xy(i);pts+=x.toFixed(1)+','+y.toFixed(1)+' ';dots+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="2.6" fill="'+color+'"/>';}
+    return '<svg viewBox="0 0 '+w+' '+h+'" width="100%" height="'+h+'" preserveAspectRatio="none"><polyline fill="none" stroke="'+color+'" stroke-width="2" points="'+pts+'"/>'+dots+'</svg>';
+  }
+
+  function renderHistory(){
+    const a=curHist().slice().sort((x,y)=>x.t-y.t);
+    if(!a.length){ historyEl.style.display='none'; historyEl.innerHTML=''; return; }
+    historyEl.style.display='block';
+    let html='<h2>📈 Historial y progreso</h2><div class="sub">Perfil "'+store.current+'" · '+a.length+' medición'+(a.length>1?'es':'')+'. Guardá una cada 1-2 semanas.</div>';
+    if(a.length>=2){
+      const p=a[a.length-2], c=a[a.length-1];
+      const cell=(k,delta,unitTxt,betterDown)=>{let cls;if(betterDown===null||delta===0)cls='flat';else cls=(betterDown?delta<0:delta>0)?'up':'down';return '<div class="cm"><div class="k">'+k+'</div><div class="v '+cls+'">'+(delta>0?'+':'')+n1(delta)+unitTxt+'</div></div>';};
+      html+='<div class="cmp">'+cell('Grasa',c.bf-p.bf,'%',true)+cell('M. magra',wDisp(c.leanMass)-wDisp(p.leanMass),' '+wU(),false)+cell('Peso',wDisp(c.weight)-wDisp(p.weight),' '+wU(),null)+cell('Edad metab.',c.metaAge-p.metaAge,' a',true)+'</div>';
+      const bfs=a.map(m=>m.bf), pesos=a.map(m=>wDisp(m.weight));
+      html+='<div class="chart"><div class="ct"><span>% Grasa corporal</span><b>'+n1(bfs[0])+'% → '+n1(bfs[bfs.length-1])+'%</b></div>'+spark(bfs,'#6366f1')+'</div>';
+      html+='<div class="chart"><div class="ct"><span>Peso ('+wU()+')</span><b>'+n1(pesos[0])+' → '+n1(pesos[pesos.length-1])+' '+wU()+'</b></div>'+spark(pesos,'#16a34a')+'</div>';
+    }
+    html+='<table class="htable"><thead><tr><th>Fecha</th><th>Peso</th><th>%GC</th><th>M.magra</th><th>E.metab</th><th></th></tr></thead><tbody>';
+    for(let i=a.length-1;i>=0;i--){const m=a[i];html+='<tr><td>'+m.fecha+'</td><td>'+n1(wDisp(m.weight))+' '+wU()+'</td><td>'+n1(m.bf)+'%</td><td>'+n1(wDisp(m.leanMass))+' '+wU()+'</td><td>'+m.metaAge+' a</td><td><button class="del" data-del="'+m.t+'" title="Borrar">✕</button></td></tr>';}
+    html+='</tbody></table><div class="hist-actions"><button id="expHist">⬇️ Exportar (JSON)</button><button id="impHist">⬆️ Importar</button><button id="clearHist">Borrar historial</button></div>';
+    historyEl.innerHTML=html;
+  }
+
+  // Guardar / borrar / exportar / importar
+  saveBtn.addEventListener('click',()=>{
+    if(!lastCalc) return;
+    const a=curHist(), d=new Date();
+    let t=d.getTime(); if(a.length && a[a.length-1].t>=t) t=a[a.length-1].t+1;
+    a.push(Object.assign({t:t, fecha:d.toLocaleDateString('es-AR')}, lastCalc));
+    setHist(a); renderHistory();
+    saveBtn.textContent='✓ Medición guardada'; saveBtn.classList.add('ok');
+    setTimeout(()=>{saveBtn.textContent='💾 Guardar medición'; saveBtn.classList.remove('ok');},1800);
+  });
+  historyEl.addEventListener('click',e=>{
+    const del=e.target.closest('[data-del]');
+    if(del){ const t=+del.dataset.del; setHist(curHist().filter(m=>m.t!==t)); renderHistory(); return; }
+    if(e.target.closest('#clearHist')){ if(confirm('¿Borrar el historial del perfil "'+store.current+'"?')){ setHist([]); renderHistory(); } return; }
+    if(e.target.closest('#expHist')){ exportHist(); return; }
+    if(e.target.closest('#impHist')){ importHist(); return; }
+  });
+  function exportHist(){
+    const blob=new Blob([JSON.stringify({profile:store.current,measurements:curHist()},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='historial-'+store.current.replace(/\s+/g,'_')+'.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  function importHist(){
+    const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,application/json';
+    inp.onchange=()=>{ const f=inp.files[0]; if(!f) return; const r=new FileReader();
+      r.onload=()=>{ try{
+        const data=JSON.parse(r.result); const arr=Array.isArray(data)?data:data.measurements;
+        if(!Array.isArray(arr)) throw 0;
+        const cur=curHist(), seen=new Set(cur.map(m=>m.t));
+        arr.forEach(m=>{ if(m&&m.t&&!seen.has(m.t)){ cur.push(m); seen.add(m.t); } });
+        cur.sort((x,y)=>x.t-y.t); setHist(cur); renderHistory();
+        alert('Importado en el perfil "'+store.current+'".');
+      }catch(e){ alert('Archivo inválido. Debe ser un JSON exportado por esta app.'); } };
+      r.readAsText(f);
+    };
+    inp.click();
+  }
+
+  // Tooltips
+  output.addEventListener('click',e=>{
+    const b=e.target.closest('.i'); if(!b) return;
+    const card=b.closest('.stat,.cal,.macro,.pj,.row,.hero');
+    const tip=card&&card.querySelector(':scope > .tip');
+    if(tip) tip.classList.toggle('open');
+  });
+
+  // PDF (captura el informe vivo; fuerza tema claro)
+  pdfBtn.addEventListener('click',()=>{
+    if(!lastCalc) return;
+    if(typeof html2pdf==='undefined'){ window.print(); return; }
+    const orig=pdfBtn.textContent; pdfBtn.disabled=true; pdfBtn.textContent='⏳ Generando PDF…';
+    const prevTheme=document.documentElement.getAttribute('data-theme');
+    document.documentElement.removeAttribute('data-theme'); // PDF siempre en claro
+    output.classList.add('pdfing');
+    const done=()=>{ output.classList.remove('pdfing'); if(prevTheme)document.documentElement.setAttribute('data-theme',prevTheme); pdfBtn.disabled=false; pdfBtn.textContent=orig; };
+    const fecha=new Date().toISOString().slice(0,10);
+    html2pdf().set({margin:[8,8,10,8],filename:'informe-composicion-corporal-'+fecha+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['.hero','.stat','.row','.cal','.macro','.pj','.chart','.a']}}).from(output).save().then(done).catch(()=>{ done(); window.print(); });
+  });
+
+  // ---- Perfiles UI ----
+  profileSel.addEventListener('change',()=>{ store.current=profileSel.value; saveStore(store); renderHistory(); });
+  document.getElementById('newProfile').addEventListener('click',()=>{
+    const name=(prompt('Nombre del nuevo perfil:')||'').trim();
+    if(!name) return;
+    if(store.data[name]){ alert('Ya existe un perfil con ese nombre.'); return; }
+    store.data[name]=[]; store.current=name; saveStore(store); renderProfiles(); renderHistory();
+  });
+  document.getElementById('renProfile').addEventListener('click',()=>{
+    const name=(prompt('Nuevo nombre para "'+store.current+'":',store.current)||'').trim();
+    if(!name||name===store.current) return;
+    if(store.data[name]){ alert('Ya existe un perfil con ese nombre.'); return; }
+    store.data[name]=store.data[store.current]; delete store.data[store.current]; store.current=name;
+    saveStore(store); renderProfiles(); renderHistory();
+  });
+
+  // ---- Unidades ----
+  function applyUnits(prevUnit){
+    document.querySelectorAll('.unit[data-u="w"]').forEach(e=>e.textContent=wU());
+    document.querySelectorAll('.unit[data-u="l"]').forEach(e=>e.textContent=lU());
+    // convertir valores cargados
+    if(prevUnit&&prevUnit!==unit){
+      ['weight','height','neck','waist','hip'].forEach(id=>{
+        const el=inputEl(id); const v=parseFloat(el.value); if(!isFinite(v)) return;
+        const factor=(id==='weight')?LB:INCH;
+        el.value=(unit==='imperial')?(v*factor).toFixed(1):(v/factor).toFixed(1);
+      });
+    }
+    const ph={weight:[70,154],height:[170,67],neck:[38,15],waist:[85,33],hip:[95,37]};
+    Object.keys(ph).forEach(id=>inputEl(id).placeholder=isImp()?ph[id][1]:ph[id][0]);
+  }
+  form.querySelectorAll('input[name="unit"]').forEach(r=>r.addEventListener('change',()=>{
+    const prev=unit; unit=form.querySelector('input[name="unit"]:checked').value;
+    applyUnits(prev); update(); renderHistory();
+  }));
+
+  // ---- Tema ----
+  function applyTheme(t){ if(t==='dark'){document.documentElement.setAttribute('data-theme','dark'); themeBtn.textContent='☀️';} else {document.documentElement.removeAttribute('data-theme'); themeBtn.textContent='🌙';} }
+  themeBtn.addEventListener('click',()=>{ const dark=document.documentElement.getAttribute('data-theme')!=='dark'; applyTheme(dark?'dark':'light'); try{localStorage.setItem(TKEY,dark?'dark':'light');}catch(e){} });
+
+  // ---- Eventos generales ----
+  form.addEventListener('input',update);
+  form.addEventListener('change',e=>{ if(e.target.name==='gender') fieldEl('hip').classList.toggle('hide',genderVal()!=='female'); update(); });
+  ['age','weight','height','neck','waist','hip','targetbf'].forEach(id=>inputEl(id).addEventListener('blur',()=>{touched[id]=true;update();}));
+  form.addEventListener('submit',e=>{ e.preventDefault(); submitted=true; ['age','weight','height','neck','waist','hip'].forEach(id=>touched[id]=true); update(); if(!result.classList.contains('empty')) result.scrollIntoView({behavior:'smooth',block:'start'}); });
+
+  // ---- Init ----
+  try{ const t=localStorage.getItem(TKEY); if(t) applyTheme(t); else if(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches) applyTheme('dark'); }catch(e){}
+  renderProfiles();
+  renderHistory();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); }); }
+</script>
+</body>
+</html>

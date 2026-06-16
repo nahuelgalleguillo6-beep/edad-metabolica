@@ -1,0 +1,15 @@
+{
+  "name": "Analizador de Composición Corporal y Edad Metabólica",
+  "short_name": "Edad Metabólica",
+  "description": "Calculadora profesional de edad metabólica y composición corporal con medidas caseras.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef2ff",
+  "theme_color": "#6366f1",
+  "lang": "es",
+  "icons": [
+    { "src": "icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any maskable" }
+  ]
+}
