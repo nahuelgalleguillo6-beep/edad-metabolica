@@ -113,7 +113,7 @@
   .btn:active{transform:translateY(1px)}
 
   .result{border-radius:var(--radius);border:1px solid var(--line);padding:22px;background:var(--card);box-shadow:var(--shadow);margin-bottom:18px}
-  .result.empty #output,.result.empty #actions,.result.empty #intakeWrap{display:none}
+  .result.empty #output,.result.empty #actions,.result.empty #intakeWrap,.result.empty #photoWrap{display:none}
   .result .placeholder{color:var(--muted);font-size:.95rem;text-align:center;padding:14px 0}
   .result:not(.empty) .placeholder{display:none}
 
@@ -246,6 +246,24 @@
   .mealtot .mt .k{font-size:.64rem;color:var(--muted);text-transform:uppercase;font-weight:600}
   .mealtot .mt .v{font-weight:800;font-size:.95rem;margin-top:2px;color:var(--plan-ink)}
   .mealnote{font-size:.76rem;color:var(--muted);margin-top:10px;line-height:1.5;text-align:center}
+  .photoctl{margin-top:10px;background:var(--surface);border:1px dashed var(--line);border-radius:11px;padding:12px 14px}
+  .photoctl > label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:8px}
+  .photorow{display:flex;align-items:center;gap:10px}
+  .photoprev{width:48px;height:48px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+  .photoclear{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;width:32px;height:32px;cursor:pointer;flex:none}
+  .photoclear:hover{border-color:var(--bad);color:var(--bad)}
+  .photos{margin-bottom:16px}
+  .phead{font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:10px}
+  .ba{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .ba figure{margin:0}
+  .ba img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:zoom-in}
+  .ba figcaption{font-size:.72rem;color:var(--muted);text-align:center;margin-top:5px}
+  .pstrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+  .pstrip figure{margin:0;flex:0 0 auto}
+  .pstrip img{width:84px;height:112px;object-fit:cover;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;display:block}
+  .pstrip figcaption{font-size:.66rem;color:var(--muted);text-align:center;margin-top:3px}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;cursor:zoom-out}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px}
   .chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
   .chart .ct{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:4px}
   .chart .ct b{font-size:.9rem;color:var(--ink)}
@@ -381,6 +399,15 @@
       <label for="intake">🍽️ Calorías por día que comiste desde tu última medición <span style="font-weight:400;color:var(--soft)">· opcional, recalibra tu metabolismo real</span></label>
       <input id="intake" type="number" inputmode="numeric" step="50" placeholder="ej. 2200">
     </div>
+    <div class="photoctl" id="photoWrap">
+      <label>📷 Foto de progreso <span style="font-weight:400;color:var(--soft)">· opcional, se guarda solo en tu dispositivo</span></label>
+      <div class="photorow">
+        <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
+        <button type="button" class="minibtn" id="photoBtn">📷 Elegir / sacar foto</button>
+        <img id="photoPreview" class="photoprev" alt="vista previa" hidden>
+        <button type="button" class="photoclear" id="photoClear" title="Quitar" hidden>✕</button>
+      </div>
+    </div>
     <div id="actions">
       <button type="button" class="act-btn" id="saveBtn">💾 Guardar medición</button>
       <button type="button" class="act-btn" id="pdfBtn">🖨️ Descargar PDF</button>
@@ -506,7 +533,7 @@
         output=document.getElementById('output'), historyEl=document.getElementById('history'),
         saveBtn=document.getElementById('saveBtn'), pdfBtn=document.getElementById('pdfBtn'),
         profileSel=document.getElementById('profileSel'), themeBtn=document.getElementById('theme');
-  const touched={}; let submitted=false; let lastCalc=null; let mealVariant=0; let lastMacros=null;
+  const touched={}; let submitted=false; let lastCalc=null; let mealVariant=0; let lastMacros=null; let pendingPhoto=null;
 
   const genderVal=()=>form.querySelector('input[name="gender"]:checked').value;
   const fieldEl=id=>form.querySelector('.field[data-field="'+id+'"]');
@@ -729,10 +756,10 @@
     }
     return s;
   }
-  function saveStore(s){ try{localStorage.setItem(PKEY,JSON.stringify(s));}catch(e){} }
+  function saveStore(s){ try{localStorage.setItem(PKEY,JSON.stringify(s));return true;}catch(e){return false;} }
   let store=loadStore();
   const curHist=()=>store.data[store.current]||[];
-  const setHist=a=>{ store.data[store.current]=a; saveStore(store); };
+  const setHist=a=>{ store.data[store.current]=a; return saveStore(store); };
 
   function renderProfiles(){
     profileSel.innerHTML=Object.keys(store.data).map(n=>'<option'+(n===store.current?' selected':'')+'>'+n+'</option>').join('');
@@ -842,6 +869,14 @@
       html+='<div class="chart"><div class="ct"><span>% Grasa corporal</span><b>'+n1(bfs[0])+'% → '+n1(bfs[bfs.length-1])+'%</b></div>'+bfChart(bfs,target,'#6366f1')+'</div>';
       html+='<div class="chart"><div class="ct"><span>Peso ('+wU()+')</span><b>'+n1(pesos[0])+' → '+n1(pesos[pesos.length-1])+' '+wU()+'</b></div>'+spark(pesos,'#16a34a')+'</div>';
     }
+    const wp=a.filter(m=>m.photo);
+    if(wp.length){
+      let ba='';
+      if(wp.length>=2){ const f=wp[0], l=wp[wp.length-1];
+        ba='<div class="ba"><figure><img class="pthumb" src="'+f.photo+'" alt="antes"><figcaption>Antes · '+f.fecha+' · '+n1(f.bf)+'% grasa</figcaption></figure><figure><img class="pthumb" src="'+l.photo+'" alt="ahora"><figcaption>Ahora · '+l.fecha+' · '+n1(l.bf)+'% grasa</figcaption></figure></div>'; }
+      const strip=wp.map(m=>'<figure><img class="pthumb" src="'+m.photo+'" alt="'+m.fecha+'"><figcaption>'+m.fecha+'</figcaption></figure>').join('');
+      html+='<div class="photos"><div class="phead">📸 Progreso visual'+(wp.length>=2?' · antes / ahora':'')+'</div>'+ba+(wp.length>1?'<div class="pstrip">'+strip+'</div>':'')+'</div>';
+    }
     html+='<table class="htable"><thead><tr><th>Fecha</th><th>Peso</th><th>%GC</th><th>M.magra</th><th>E.metab</th><th></th></tr></thead><tbody>';
     for(let i=a.length-1;i>=0;i--){const m=a[i];html+='<tr><td>'+m.fecha+'</td><td>'+n1(wDisp(m.weight))+' '+wU()+'</td><td>'+n1(m.bf)+'%</td><td>'+n1(wDisp(m.leanMass))+' '+wU()+'</td><td>'+m.metaAge+' a</td><td><button class="del" data-del="'+m.t+'" title="Borrar">✕</button></td></tr>';}
     html+='</tbody></table><div class="hist-actions"><button id="expHist">⬇️ Exportar (JSON)</button><button id="impHist">⬆️ Importar</button><button id="clearHist">Borrar historial</button></div>';
@@ -856,12 +891,34 @@
     const meas=Object.assign({t:t, fecha:d.toLocaleDateString('es-AR')}, lastCalc);
     const ie=document.getElementById('intake'); const iv=ie?parseFloat(ie.value):NaN;
     if(isFinite(iv)&&iv>=600&&iv<=7000) meas.intake=Math.round(iv);
-    a.push(meas); if(ie) ie.value='';
-    setHist(a); renderHistory(); update();
+    if(pendingPhoto) meas.photo=pendingPhoto;
+    a.push(meas);
+    let ok=setHist(a);
+    if(!ok && meas.photo){ delete meas.photo; ok=setHist(a); if(ok) alert('La medición se guardó, pero la foto no entró: el almacenamiento del navegador está lleno. Borrá fotos o mediciones viejas.'); }
+    if(!ok){ a.pop(); setHist(a); alert('No se pudo guardar: el almacenamiento del navegador está lleno. Borrá mediciones viejas.'); return; }
+    if(ie) ie.value=''; clearPhoto();
+    renderHistory(); update();
     saveBtn.textContent='✓ Medición guardada'; saveBtn.classList.add('ok');
     setTimeout(()=>{saveBtn.textContent='💾 Guardar medición'; saveBtn.classList.remove('ok');},1800);
   });
+  // Foto de progreso: comprimir y previsualizar
+  const photoInput=document.getElementById('photoInput'), photoPrev=document.getElementById('photoPreview'), photoClearBtn=document.getElementById('photoClear');
+  function clearPhoto(){ pendingPhoto=null; if(photoInput)photoInput.value=''; if(photoPrev){photoPrev.hidden=true;photoPrev.removeAttribute('src');} if(photoClearBtn)photoClearBtn.hidden=true; }
+  function compressImage(file,cb){
+    const fr=new FileReader();
+    fr.onload=e=>{ const img=new Image(); img.onload=()=>{ const max=520; let w=img.width,h=img.height;
+      if(w>h && w>max){h=Math.round(h*max/w);w=max;} else if(h>=w && h>max){w=Math.round(w*max/h);h=max;}
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h; cv.getContext('2d').drawImage(img,0,0,w,h);
+      try{ cb(cv.toDataURL('image/jpeg',0.7)); }catch(err){ cb(null); } };
+      img.onerror=()=>cb(null); img.src=e.target.result; };
+    fr.onerror=()=>cb(null); fr.readAsDataURL(file);
+  }
+  document.getElementById('photoBtn').addEventListener('click',()=>photoInput.click());
+  photoInput.addEventListener('change',()=>{ const f=photoInput.files&&photoInput.files[0]; if(!f) return; compressImage(f,url=>{ if(!url){ alert('No se pudo procesar la imagen.'); return; } pendingPhoto=url; photoPrev.src=url; photoPrev.hidden=false; photoClearBtn.hidden=false; }); });
+  photoClearBtn.addEventListener('click',clearPhoto);
   historyEl.addEventListener('click',e=>{
+    const ph=e.target.closest('.pthumb');
+    if(ph){ const ov=document.createElement('div'); ov.className='lightbox'; const im=document.createElement('img'); im.src=ph.src; ov.appendChild(im); ov.addEventListener('click',()=>ov.remove()); document.body.appendChild(ov); return; }
     const del=e.target.closest('[data-del]');
     if(del){ const t=+del.dataset.del; setHist(curHist().filter(m=>m.t!==t)); renderHistory(); return; }
     if(e.target.closest('#clearHist')){ if(confirm('¿Borrar el historial del perfil "'+store.current+'"?')){ setHist([]); renderHistory(); } return; }
