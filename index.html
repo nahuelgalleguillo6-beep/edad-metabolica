@@ -8,6 +8,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Edad Metabólica">
 <meta name="description" content="Calculadora de edad metabólica y composición corporal con medidas caseras.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Edad Metabólica — Analizador de Composición Corporal">
+<meta property="og:description" content="Calculá tu edad metabólica, % de grasa, masa muscular y un plan personalizado, solo con cinta métrica y balanza.">
+<meta property="og:url" content="https://nahuelgalleguillo6-beep.github.io/edad-metabolica/">
+<meta property="og:image" content="https://nahuelgalleguillo6-beep.github.io/edad-metabolica/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_AR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Edad Metabólica — Analizador de Composición Corporal">
+<meta name="twitter:description" content="Calculá tu edad metabólica, % de grasa y un plan personalizado, solo con cinta métrica y balanza.">
+<meta name="twitter:image" content="https://nahuelgalleguillo6-beep.github.io/edad-metabolica/og-image.png">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -223,6 +235,10 @@
 
   .note{font-size:.76rem;color:var(--muted);text-align:center;line-height:1.55;margin-top:4px}
   .note strong{color:var(--ink)}
+  .linkbtn{display:block;margin:12px auto 0;background:none;border:none;color:var(--brand-d);font-weight:600;font-size:.86rem;cursor:pointer;text-decoration:underline}
+  .footer{text-align:center;color:var(--soft);font-size:.74rem;line-height:1.7;margin-top:12px;padding-top:14px;border-top:1px solid var(--line)}
+  .footer b{color:var(--muted)}
+  .footer p{margin:2px 0}
 
   .print-only{display:none}
   .printhead{margin-bottom:18px;border-bottom:2px solid var(--line);padding-bottom:12px}
@@ -320,6 +336,7 @@
     </details>
 
     <button class="btn" type="submit">Analizar mi composición corporal</button>
+    <button type="button" id="exampleBtn" class="linkbtn">👀 Ver un ejemplo con datos de muestra</button>
   </form>
 
   <section class="result empty" id="result" aria-live="polite">
@@ -351,6 +368,11 @@
   <p class="note">
     <strong>%GC:</strong> US Navy + RFM · <strong>TMB:</strong> Mifflin-St Jeor + Katch-McArdle · Estimaciones orientativas, no son diagnóstico médico.
   </p>
+
+  <footer class="footer">
+    <p>🔒 <b>Privacidad:</b> todos tus datos se calculan y se guardan solo en tu dispositivo. No se suben a ningún servidor.</p>
+    <p>Hecho por <b>Nahuel Galleguillo</b> · <span id="yr">2026</span> · No reemplaza el consejo de un profesional de la salud.</p>
+  </footer>
 
 </div>
 
@@ -784,11 +806,22 @@
   // ---- Eventos generales ----
   form.addEventListener('input',update);
   form.addEventListener('change',e=>{ if(e.target.name==='gender') fieldEl('hip').classList.toggle('hide',genderVal()!=='female'); update(); });
+  document.getElementById('exampleBtn').addEventListener('click',function(){
+    const m=form.querySelector('input[name="unit"][value="metric"]');
+    if(!m.checked){ const prev=unit; m.checked=true; unit='metric'; applyUnits(prev); }
+    form.querySelector('input[name="gender"][value="male"]').checked=true; fieldEl('hip').classList.add('hide');
+    inputEl('activity').value='1.55'; inputEl('goalSel').value='auto'; inputEl('targetbf').value='';
+    const sample={age:'30',weight:'70',height:'170',neck:'38',waist:'85'};
+    Object.keys(sample).forEach(id=>{inputEl(id).value=sample[id];});
+    ['age','weight','height','neck','waist'].forEach(id=>touched[id]=true);
+    update(); result.scrollIntoView({behavior:'smooth',block:'start'});
+  });
   ['age','weight','height','neck','waist','hip','targetbf'].forEach(id=>inputEl(id).addEventListener('blur',()=>{touched[id]=true;update();}));
   form.addEventListener('submit',e=>{ e.preventDefault(); submitted=true; ['age','weight','height','neck','waist','hip'].forEach(id=>touched[id]=true); update(); if(!result.classList.contains('empty')) result.scrollIntoView({behavior:'smooth',block:'start'}); });
 
   // ---- Init ----
   try{ const t=localStorage.getItem(TKEY); if(t) applyTheme(t); else if(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches) applyTheme('dark'); }catch(e){}
+  var _y=document.getElementById('yr'); if(_y) _y.textContent=new Date().getFullYear();
   renderProfiles();
   renderHistory();
 })();
