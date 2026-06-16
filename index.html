@@ -22,7 +22,8 @@
 <meta name="twitter:image" content="https://nahuelgalleguillo6-beep.github.io/edad-metabolica/og-image.png">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Analizador de Composición Corporal y Edad Metabólica</title>
 <style>
   :root{
@@ -267,6 +268,8 @@
   .pstrip figcaption{font-size:.66rem;color:var(--muted);text-align:center;margin-top:3px}
   .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;cursor:zoom-out}
   .lightbox img{max-width:100%;max-height:100%;border-radius:10px}
+  .lbclose{position:fixed;top:16px;right:16px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:1.2rem;cursor:pointer}
+  .lbclose:hover{background:rgba(255,255,255,.35)}
   .chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
   .chart .ct{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:4px}
   .chart .ct b{font-size:.9rem;color:var(--ink)}
@@ -330,7 +333,8 @@
         <select id="profileSel"></select>
       </div>
       <button type="button" class="minibtn" id="newProfile">＋ Nuevo</button>
-      <button type="button" class="minibtn" id="renProfile">✎</button>
+      <button type="button" class="minibtn" id="renProfile" title="Renombrar perfil">✎</button>
+      <button type="button" class="minibtn" id="delProfile" title="Borrar perfil">🗑</button>
     </div>
 
     <div class="seg" role="radiogroup" aria-label="Género">
@@ -888,7 +892,7 @@
       if(wp.length>=2){ const f=wp[0], l=wp[wp.length-1];
         ba='<div class="ba"><figure><img class="pthumb" src="'+f.photo+'" alt="antes"><figcaption>Antes · '+f.fecha+' · '+n1(f.bf)+'% grasa</figcaption></figure><figure><img class="pthumb" src="'+l.photo+'" alt="ahora"><figcaption>Ahora · '+l.fecha+' · '+n1(l.bf)+'% grasa</figcaption></figure></div>'; }
       const strip=wp.map(m=>'<figure><img class="pthumb" src="'+m.photo+'" alt="'+m.fecha+'"><figcaption>'+m.fecha+'</figcaption></figure>').join('');
-      html+='<div class="photos"><div class="phead">📸 Progreso visual'+(wp.length>=2?' · antes / ahora':'')+'</div>'+ba+(wp.length>1?'<div class="pstrip">'+strip+'</div>':'')+'</div>';
+      html+='<div class="photos"><div class="phead">📸 Progreso visual'+(wp.length>=2?' · antes / ahora':'')+'</div>'+ba+'<div class="pstrip">'+strip+'</div></div>';
     }
     html+='<table class="htable"><thead><tr><th>Fecha</th><th>Peso</th><th>%GC</th><th>M.magra</th><th>E.metab</th><th></th></tr></thead><tbody>';
     for(let i=a.length-1;i>=0;i--){const m=a[i];html+='<tr><td>'+m.fecha+'</td><td>'+n1(wDisp(m.weight))+' '+wU()+'</td><td>'+n1(m.bf)+'%</td><td>'+n1(wDisp(m.leanMass))+' '+wU()+'</td><td>'+m.metaAge+' a</td><td><button class="del" data-del="'+m.t+'" title="Borrar">✕</button></td></tr>';}
@@ -931,7 +935,13 @@
   photoClearBtn.addEventListener('click',clearPhoto);
   historyEl.addEventListener('click',e=>{
     const ph=e.target.closest('.pthumb');
-    if(ph){ const ov=document.createElement('div'); ov.className='lightbox'; const im=document.createElement('img'); im.src=ph.src; ov.appendChild(im); ov.addEventListener('click',()=>ov.remove()); document.body.appendChild(ov); return; }
+    if(ph){ const ov=document.createElement('div'); ov.className='lightbox';
+      const im=document.createElement('img'); im.src=ph.src; ov.appendChild(im);
+      const x=document.createElement('button'); x.className='lbclose'; x.textContent='✕'; x.setAttribute('aria-label','Cerrar'); ov.appendChild(x);
+      const close=()=>{ if(ov.parentNode) ov.remove(); document.removeEventListener('keydown',onKey); };
+      const onKey=ev=>{ if(ev.key==='Escape') close(); };
+      ov.addEventListener('click',close); document.addEventListener('keydown',onKey);
+      document.body.appendChild(ov); return; }
     const del=e.target.closest('[data-del]');
     if(del){ const t=+del.dataset.del; setHist(curHist().filter(m=>m.t!==t)); renderHistory(); return; }
     if(e.target.closest('#clearHist')){ if(confirm('¿Borrar el historial del perfil "'+store.current+'"?')){ setHist([]); renderHistory(); } return; }
@@ -1007,6 +1017,12 @@
     if(!name||name===store.current) return;
     if(store.data[name]){ alert('Ya existe un perfil con ese nombre.'); return; }
     store.data[name]=store.data[store.current]; delete store.data[store.current]; store.current=name;
+    saveStore(store); renderProfiles(); renderHistory();
+  });
+  document.getElementById('delProfile').addEventListener('click',()=>{
+    if(Object.keys(store.data).length<=1){ alert('Tenés que tener al menos un perfil.'); return; }
+    if(!confirm('¿Borrar el perfil "'+store.current+'" y todo su historial? No se puede deshacer.')) return;
+    delete store.data[store.current]; store.current=Object.keys(store.data)[0];
     saveStore(store); renderProfiles(); renderHistory();
   });
 

@@ -1,6 +1,6 @@
 // Service worker: cachea la app para uso offline (network-first para tener siempre lo último online)
-const CACHE = 'edad-metabolica-v1';
-const ASSETS = ['./', './index.html', './edad-metabolica.html', './html2pdf.bundle.min.js', './manifest.json', './icon.svg'];
+const CACHE = 'edad-metabolica-v2';
+const ASSETS = ['./', './index.html', './edad-metabolica.html', './html2pdf.bundle.min.js', './manifest.json', './icon.svg', './icon-180.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
