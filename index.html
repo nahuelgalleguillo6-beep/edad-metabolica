@@ -113,7 +113,7 @@
   .btn:active{transform:translateY(1px)}
 
   .result{border-radius:var(--radius);border:1px solid var(--line);padding:22px;background:var(--card);box-shadow:var(--shadow);margin-bottom:18px}
-  .result.empty #output,.result.empty #actions{display:none}
+  .result.empty #output,.result.empty #actions,.result.empty #intakeWrap{display:none}
   .result .placeholder{color:var(--muted);font-size:.95rem;text-align:center;padding:14px 0}
   .result:not(.empty) .placeholder{display:none}
 
@@ -223,6 +223,15 @@
   .insight{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:12px;padding:13px 15px;margin-bottom:16px;font-size:.87rem;line-height:1.55;color:var(--ink)}
   .insight.ok{border-left-color:var(--ok)} .insight.warn{border-left-color:var(--warn)} .insight.bad{border-left-color:var(--bad)} .insight.info{border-left-color:var(--info)}
   .insight .sum{display:block;margin-top:6px;color:var(--muted);font-size:.8rem}
+  .recal{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--info);border-radius:11px;padding:12px 14px;margin-bottom:12px;font-size:.84rem;line-height:1.5;color:var(--ink)}
+  .recal b{font-weight:800}
+  .recal .sum{display:block;margin-top:5px;color:var(--muted);font-size:.76rem}
+  .recal.hintmode{border-left-color:var(--soft);color:var(--muted)}
+  .intake{margin-top:18px;background:var(--surface);border:1px dashed var(--line);border-radius:11px;padding:12px 14px}
+  .intake label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+  .intake input{width:100%;padding:11px 13px;font-size:1rem;color:var(--ink);border:1.5px solid var(--line);border-radius:10px;background:var(--card);-moz-appearance:textfield}
+  .intake input::-webkit-outer-spin-button,.intake input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .intake input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(99,102,241,.15)}
   .chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
   .chart .ct{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:4px}
   .chart .ct b{font-size:.9rem;color:var(--ink)}
@@ -354,6 +363,10 @@
   <section class="result empty" id="result" aria-live="polite">
     <p class="placeholder">Completá tus datos para ver tu análisis completo.</p>
     <div id="output"></div>
+    <div class="intake" id="intakeWrap" style="display:none">
+      <label for="intake">🍽️ Calorías por día que comiste desde tu última medición <span style="font-weight:400;color:var(--soft)">· opcional, recalibra tu metabolismo real</span></label>
+      <input id="intake" type="number" inputmode="numeric" step="50" placeholder="ej. 2200">
+    </div>
     <div id="actions">
       <button type="button" class="act-btn" id="saveBtn">💾 Guardar medición</button>
       <button type="button" class="act-btn" id="pdfBtn">🖨️ Descargar PDF</button>
@@ -532,7 +545,15 @@
     const ideal=idealBodyFat(g,age);
     const fatMass=peso*bf/100, leanMass=peso-fatMass;
     const mifflin=bmrMifflin(g,peso,altura,age), katch=bmrKatch(leanMass);
-    const tmb=(mifflin+katch)/2, tdee=tmb*activity;
+    const tmb=(mifflin+katch)/2, formulaTDEE=tmb*activity;
+    const adt=adaptiveTDEE(curHist());
+    let realTDEE=null;
+    if(adt){ realTDEE=Math.round(clamp(clamp(adt.tdee,formulaTDEE*0.6,formulaTDEE*1.6),1200,5500)); }
+    const tdee = realTDEE!=null ? realTDEE : formulaTDEE;
+    let recalHtml='';
+    if(realTDEE!=null){ const pct=Math.round((realTDEE/formulaTDEE-1)*100);
+      recalHtml='<div class="recal">🔬 <b>Recalibrado con tu progreso:</b> la fórmula estimaba '+n0(formulaTDEE)+' kcal, pero según lo que comiste y cómo cambió tu peso, tu metabolismo real es ~<b>'+n0(realTDEE)+' kcal/día</b> ('+(pct>=0?'+':'−')+Math.abs(pct)+' %). Las calorías de abajo ya están ajustadas a esto.<span class="sum">Calculado con '+adt.n+' período'+(adt.n>1?'s':'')+' de calorías registradas — se afina con más semanas.</span></div>';
+    } else if(curHist().length){ recalHtml='<div class="recal hintmode">💡 <b>¿Querés calorías exactas a tu metabolismo?</b> Al guardar tu próxima medición, anotá las calorías que comiste por día y recalibro tu TDEE real (como las apps de coaching serias).</div>'; }
     const bmi=peso/(aM*aM);
     const ffmi=leanMass/(aM*aM)+6.1*(1.8-aM);
     const whtr=waist/altura, whr=(g==='female'&&hip)?waist/hip:null;
@@ -647,7 +668,8 @@
         '</div></div>'+
       '<div class="block"><h3><span class="em">❤️</span>Indicadores de salud</h3><div class="rows">'+healthRows+'</div></div>'+
       '<div class="block"><h3><span class="em">🔥</span>Metabolismo y energía</h3>'+
-        '<div class="stats" style="margin-bottom:10px"><div class="stat"><div class="k">TMB (basal)</div><div class="v">'+n0(tmb)+'</div><div class="s">Mifflin '+n0(mifflin)+' · Katch '+n0(katch)+'</div></div><div class="stat"><div class="k">TDEE (gasto total)</div><div class="v">'+n0(tdee)+'</div><div class="s">kcal/día con tu actividad</div></div></div>'+
+        recalHtml+
+        '<div class="stats" style="margin-bottom:10px"><div class="stat"><div class="k">TMB (basal)</div><div class="v">'+n0(tmb)+'</div><div class="s">Mifflin '+n0(mifflin)+' · Katch '+n0(katch)+'</div></div><div class="stat"><div class="k">TDEE (gasto total)</div><div class="v">'+n0(tdee)+'</div><div class="s">'+(realTDEE!=null?'real, según tu progreso':'kcal/día con tu actividad')+'</div></div></div>'+
         '<div class="cals"><div class="cal'+(goal==='perder'?' pick':'')+'"><div class="t">Perder grasa</div><div class="n">'+n0(cPerder)+'</div><div class="u">kcal/día (−20%)</div></div><div class="cal'+((goal==='recomp'||goal==='mantener')?' pick':'')+'"><div class="t">Mantener</div><div class="n">'+n0(cMant)+'</div><div class="u">kcal/día</div></div><div class="cal'+(goal==='ganar'?' pick':'')+'"><div class="t">Ganar músculo</div><div class="n">'+n0(cGanar)+'</div><div class="u">kcal/día (+10%)</div></div></div></div>'+
       '<div class="block"><h3><span class="em">🎯</span>Tu plan recomendado</h3><div class="plan"><div class="goal">'+plan.goal+(autoFlag?'':' <span class="chip info" style="font-weight:700">elegido por vos</span>')+'</div><p class="desc">'+plan.desc+'</p>'+
         '<div class="macros"><div class="macro"><div class="k">Calorías</div><div class="v">'+n0(calMeta)+'</div><div class="s">kcal/día</div></div><div class="macro"><div class="k">Proteína</div><div class="v">'+n0(prot)+' g</div><div class="s">~'+n1(protKg)+' g/kg</div></div><div class="macro"><div class="k">Grasas</div><div class="v">'+n0(fat)+' g</div><div class="s">~0,9 g/kg</div></div><div class="macro"><div class="k">Carbohidratos</div><div class="v">'+n0(carb)+' g</div><div class="s">resto</div></div></div>'+
@@ -656,6 +678,7 @@
       '<div class="block"><h3><span class="em">⏱️</span>Proyección temporal</h3>'+projHtml+'</div>';
 
     attachTips();
+    var iw=document.getElementById('intakeWrap'); if(iw) iw.style.display=curHist().length?'':'none';
   }
 
   function attachTips(){
@@ -737,6 +760,20 @@
     const summary='Desde tu primera medición '+span+': grasa '+(dFat>0?'+':'')+n1(dFat)+'%, músculo '+(dLean>0?'+':'')+n1(wDisp(dLean))+' '+wU()+', peso '+(dW>0?'+':'')+n1(wDisp(dW))+' '+wU()+'.';
     return {tone,emoji,headline,pace,summary};
   }
+  function adaptiveTDEE(hist){
+    const a=hist.slice().sort((x,y)=>x.t-y.t), pts=[];
+    for(let i=1;i<a.length;i++){
+      const p=a[i-1], c=a[i];
+      if(c.intake>0){
+        const days=(c.t-p.t)/86400000;
+        if(days>=3) pts.push({tdee:c.intake-((c.weight-p.weight)*KCAL_KG)/days, days:days});
+      }
+    }
+    if(!pts.length) return null;
+    const recent=pts.slice(-4); let wsum=0,vsum=0;
+    recent.forEach((p,i)=>{const w=(i+1)*Math.min(p.days,14); wsum+=w; vsum+=p.tdee*w;});
+    return {tdee:vsum/wsum, n:pts.length};
+  }
 
   function renderHistory(){
     const a=curHist().slice().sort((x,y)=>x.t-y.t);
@@ -765,7 +802,10 @@
     if(!lastCalc) return;
     const a=curHist(), d=new Date();
     let t=d.getTime(); if(a.length && a[a.length-1].t>=t) t=a[a.length-1].t+1;
-    a.push(Object.assign({t:t, fecha:d.toLocaleDateString('es-AR')}, lastCalc));
+    const meas=Object.assign({t:t, fecha:d.toLocaleDateString('es-AR')}, lastCalc);
+    const ie=document.getElementById('intake'); const iv=ie?parseFloat(ie.value):NaN;
+    if(isFinite(iv)&&iv>=600&&iv<=7000) meas.intake=Math.round(iv);
+    a.push(meas); if(ie) ie.value='';
     setHist(a); renderHistory(); update();
     saveBtn.textContent='✓ Medición guardada'; saveBtn.classList.add('ok');
     setTimeout(()=>{saveBtn.textContent='💾 Guardar medición'; saveBtn.classList.remove('ok');},1800);
