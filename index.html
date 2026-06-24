@@ -70,6 +70,10 @@
   .profilebar select,.minibtn{height:44px}
   .minibtn{padding:0 14px;border-radius:11px;border:1.5px solid var(--brand);background:var(--card);color:var(--brand-d);font-weight:700;font-size:.85rem;cursor:pointer;white-space:nowrap}
   .minibtn:hover{background:var(--pick-bg)}
+  .minibtn.sec{border-color:var(--line);color:var(--muted)}
+  .pfedit{display:flex;gap:8px;margin:-4px 0 16px}
+  .pfedit input{flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--brand);border-radius:11px;background:var(--card);color:var(--ink);font-size:.92rem}
+  .pfedit input:focus{outline:none;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
 
   .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:var(--surface);border-radius:12px;padding:6px;margin-bottom:14px}
   .seg label{position:relative;cursor:pointer}
@@ -270,6 +274,9 @@
   .lightbox img{max-width:100%;max-height:100%;border-radius:10px}
   .lbclose{position:fixed;top:16px;right:16px;width:42px;height:42px;border-radius:50%;border:none;background:rgba(255,255,255,.2);color:#fff;font-size:1.2rem;cursor:pointer}
   .lbclose:hover{background:rgba(255,255,255,.35)}
+  .pdfwrap{padding:0;background:var(--card)}
+  .pdfwrap .pdfhist{margin-top:18px;padding-top:14px;border-top:2px solid var(--line)}
+  .pdfwrap .pstrip{flex-wrap:wrap;overflow:visible}
   .chart{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:16px}
   .chart .ct{display:flex;justify-content:space-between;align-items:baseline;font-size:.78rem;color:var(--muted);font-weight:600;margin-bottom:4px}
   .chart .ct b{font-size:.9rem;color:var(--ink)}
@@ -335,6 +342,11 @@
       <button type="button" class="minibtn" id="newProfile">＋ Nuevo</button>
       <button type="button" class="minibtn" id="renProfile" title="Renombrar perfil">✎</button>
       <button type="button" class="minibtn" id="delProfile" title="Borrar perfil">🗑</button>
+    </div>
+    <div class="pfedit" id="pfEdit" hidden>
+      <input id="pfName" type="text" placeholder="Nombre del nuevo perfil" maxlength="24" autocomplete="off">
+      <button type="button" class="minibtn" id="pfSave">Guardar</button>
+      <button type="button" class="minibtn sec" id="pfCancel">Cancelar</button>
     </div>
 
     <div class="seg" role="radiogroup" aria-label="Género">
@@ -989,10 +1001,19 @@
     const orig=pdfBtn.textContent; pdfBtn.disabled=true; pdfBtn.textContent='⏳ Generando PDF…';
     const prevTheme=document.documentElement.getAttribute('data-theme');
     document.documentElement.removeAttribute('data-theme'); // PDF siempre en claro
-    output.classList.add('pdfing');
-    const done=()=>{ output.classList.remove('pdfing'); if(prevTheme)document.documentElement.setAttribute('data-theme',prevTheme); pdfBtn.disabled=false; pdfBtn.textContent=orig; };
+    // Informe combinado: análisis + progreso (comparación, gráficos, fotos)
+    const wrap=document.createElement('div'); wrap.className='pdfwrap';
+    let inner=output.innerHTML;
+    if(historyEl.style.display!=='none' && historyEl.innerHTML) inner+='<div class="history pdfhist">'+historyEl.innerHTML+'</div>';
+    wrap.innerHTML=inner;
+    wrap.querySelectorAll('.i,.tip,.tiphint,.hist-actions,#mealReroll,.dietrow').forEach(n=>n.remove());
+    const ph=wrap.querySelector('.printhead'); if(ph) ph.style.display='block';
+    result.parentNode.insertBefore(wrap, result);
+    const rd=result.style.display, hd=historyEl.style.display;
+    result.style.display='none'; historyEl.style.display='none';
+    const done=()=>{ if(wrap.parentNode) wrap.remove(); result.style.display=rd; historyEl.style.display=hd; if(prevTheme)document.documentElement.setAttribute('data-theme',prevTheme); pdfBtn.disabled=false; pdfBtn.textContent=orig; };
     const fecha=new Date().toISOString().slice(0,10);
-    html2pdf().set({margin:[8,8,10,8],filename:'informe-composicion-corporal-'+fecha+'.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['.hero','.stat','.row','.cal','.macro','.pj','.chart','.a']}}).from(output).save().then(done).catch(()=>{ done(); window.print(); });
+    html2pdf().set({margin:[8,8,10,8],filename:'informe-composicion-corporal-'+fecha+'.pdf',image:{type:'jpeg',quality:0.95},html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,scrollX:0,scrollY:0},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},pagebreak:{mode:['css','legacy'],avoid:['.hero','.stat','.row','.cal','.macro','.pj','.chart','.a','.meal','.ba figure']}}).from(wrap).save().then(done).catch(()=>{ done(); window.print(); });
   });
 
   // Compartir
@@ -1004,26 +1025,29 @@
     else { prompt('Copiá el link:',url); }
   });
 
-  // ---- Perfiles UI ----
-  profileSel.addEventListener('change',()=>{ store.current=profileSel.value; saveStore(store); renderHistory(); });
-  document.getElementById('newProfile').addEventListener('click',()=>{
-    const name=(prompt('Nombre del nuevo perfil:')||'').trim();
-    if(!name) return;
-    if(store.data[name]){ alert('Ya existe un perfil con ese nombre.'); return; }
-    store.data[name]=[]; store.current=name; saveStore(store); renderProfiles(); renderHistory();
-  });
-  document.getElementById('renProfile').addEventListener('click',()=>{
-    const name=(prompt('Nuevo nombre para "'+store.current+'":',store.current)||'').trim();
-    if(!name||name===store.current) return;
-    if(store.data[name]){ alert('Ya existe un perfil con ese nombre.'); return; }
-    store.data[name]=store.data[store.current]; delete store.data[store.current]; store.current=name;
-    saveStore(store); renderProfiles(); renderHistory();
+  // ---- Perfiles UI (edición inline, sin prompt: funciona en PWA/iOS) ----
+  const pfEdit=document.getElementById('pfEdit'), pfName=document.getElementById('pfName'), pfSaveBtn=document.getElementById('pfSave'), pfCancelBtn=document.getElementById('pfCancel');
+  let pfMode='new';
+  profileSel.addEventListener('change',()=>{ store.current=profileSel.value; saveStore(store); renderHistory(); update(); });
+  function openPfEdit(mode){ pfMode=mode; pfName.value=(mode==='rename'?store.current:''); pfName.placeholder=(mode==='rename'?'Nuevo nombre':'Nombre del nuevo perfil'); pfEdit.hidden=false; pfName.focus(); pfName.select(); }
+  document.getElementById('newProfile').addEventListener('click',()=>openPfEdit('new'));
+  document.getElementById('renProfile').addEventListener('click',()=>openPfEdit('rename'));
+  pfCancelBtn.addEventListener('click',()=>{ pfEdit.hidden=true; pfName.style.borderColor=''; });
+  pfName.addEventListener('input',()=>{ pfName.style.borderColor=''; });
+  pfName.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); pfSaveBtn.click(); } else if(e.key==='Escape'){ pfEdit.hidden=true; } });
+  pfSaveBtn.addEventListener('click',()=>{
+    const name=pfName.value.trim();
+    if(!name){ pfName.focus(); return; }
+    if(store.data[name] && !(pfMode==='rename'&&name===store.current)){ pfName.style.borderColor='var(--bad)'; pfName.focus(); return; }
+    if(pfMode==='new'){ store.data[name]=[]; store.current=name; }
+    else if(name!==store.current){ store.data[name]=store.data[store.current]; delete store.data[store.current]; store.current=name; }
+    saveStore(store); pfEdit.hidden=true; pfName.style.borderColor=''; renderProfiles(); renderHistory(); update();
   });
   document.getElementById('delProfile').addEventListener('click',()=>{
     if(Object.keys(store.data).length<=1){ alert('Tenés que tener al menos un perfil.'); return; }
     if(!confirm('¿Borrar el perfil "'+store.current+'" y todo su historial? No se puede deshacer.')) return;
     delete store.data[store.current]; store.current=Object.keys(store.data)[0];
-    saveStore(store); renderProfiles(); renderHistory();
+    saveStore(store); renderProfiles(); renderHistory(); update();
   });
 
   // ---- Unidades ----
